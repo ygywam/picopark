@@ -6,7 +6,7 @@ import { sound } from "./audio.js";
 import { PlayerRenderer } from "./player.js";
 import { PhysicsEngine } from "./physics.js";
 import { GimmickManager } from "./gimmicks.js";
-import { STAGES } from "./stages.js";
+import { getStageData, TOTAL_STAGES } from "./stages.js";
 
 class PicoParkApp {
   constructor() {
@@ -166,7 +166,6 @@ class PicoParkApp {
       this.textInvitedCode.textContent = this.invitedRoomCode;
       this.lobbyDescText.textContent = "선생님 방에 연결되었습니다! 닉네임을 적고 입장하세요.";
 
-      // 모바일 기본 닉네임 힌트 제공 및 포커스
       this.inputNickname.placeholder = "내 이름 입력 (예: 김철수)";
       setTimeout(() => {
         this.inputNickname.focus();
@@ -222,12 +221,10 @@ class PicoParkApp {
     if (this.gameState !== "PLAYING") return;
 
     if (this.isTouchDevice && this.mobilePlayMode === "GAMEPAD") {
-      // 폰 화면은 캔버스 숨기고 전체 거대 게임패드만 표시
       this.screenGame.classList.add("hidden");
       this.screenGamepad.classList.remove("hidden");
       this.mobileControls.classList.add("hidden");
     } else {
-      // 캔버스 렌더링 + 모바일일 경우 반투명 오버레이 패드
       this.screenGame.classList.remove("hidden");
       this.screenGamepad.classList.add("hidden");
       if (this.isTouchDevice) {
@@ -246,7 +243,6 @@ class PicoParkApp {
     this.headerRoomCode.textContent = roomCode;
     this.headerRoomChip.classList.remove("hidden");
 
-    // 입장 후부터 가로 회전 검사 활성화
     if (this.checkOrientation) {
       this.checkOrientation();
     }
@@ -257,18 +253,15 @@ class PicoParkApp {
     } else {
       this.btnStartGame.classList.add("hidden");
       this.guestWaitingText.classList.remove("hidden");
-      // 학생이 입장하면 모바일일 때 가로모드 안내 토스트
       if (this.isTouchDevice) {
         this.mobileModeBar.classList.remove("hidden");
         this.showToast("기기를 가로로 쥐고 게임패드로 조작할 준비를 하세요!");
       }
     }
 
-    // QR 코드 생성 (교사용 칠판 화면용)
     if (isHost) {
       this.renderRoomQRCode(roomCode);
     } else {
-      // 학생 대기실에서는 QR 영역 대신 환영 배지 표시
       const qrWrapper = document.querySelector(".qr-box-wrapper");
       if (qrWrapper) qrWrapper.style.display = "none";
     }
@@ -319,15 +312,15 @@ class PicoParkApp {
         data.players.forEach(remoteP => {
           if (network.players.has(remoteP.id)) {
             const localP = network.players.get(remoteP.id);
-            // 내 캐릭터는 로컬 예측을 우선하되 오차 보정
             if (remoteP.id === network.myId) {
-              if (Math.hypot(remoteP.x - localP.x, remoteP.y - localP.y) > 40) {
+              // 내 캐릭터는 로컬 예측을 우선하되 큰 오차 보정
+              if (Math.hypot(remoteP.x - localP.x, remoteP.y - localP.y) > 45) {
                 localP.x = remoteP.x;
                 localP.y = remoteP.y;
               }
             } else {
-              localP.x += (remoteP.x - localP.x) * 0.4;
-              localP.y += (remoteP.y - localP.y) * 0.4;
+              localP.x += (remoteP.x - localP.x) * 0.45;
+              localP.y += (remoteP.y - localP.y) * 0.45;
               localP.vx = remoteP.vx;
               localP.vy = remoteP.vy;
               localP.facing = remoteP.facing;
@@ -342,6 +335,23 @@ class PicoParkApp {
           Object.assign(this.gimmickManager.key, data.gimmicks.key);
           this.gimmickManager.doorUnlocked = data.gimmicks.doorUnlocked;
           this.gimmickManager.stageCleared = data.gimmicks.stageCleared;
+
+          if (data.gimmicks.bridges) {
+            data.gimmicks.bridges.forEach((br, i) => {
+              if (this.gimmickManager.bridges[i]) {
+                this.gimmickManager.bridges[i].isActive = br.isActive;
+              }
+            });
+          }
+
+          if (data.gimmicks.switches) {
+            data.gimmicks.switches.forEach((sw, i) => {
+              if (this.gimmickManager.switches[i]) {
+                this.gimmickManager.switches[i].isPressed = sw.isPressed;
+              }
+            });
+          }
+
           if (data.gimmicks.pushBlocks) {
             data.gimmicks.pushBlocks.forEach((pb, i) => {
               if (this.gimmickManager.pushBlocks[i]) {
@@ -392,18 +402,19 @@ class PicoParkApp {
     });
   }
 
-  // 스테이지 로드
+  // 스테이지 로드 (인원수 비례 맞춤형 데이터 생성)
   loadStage(index) {
     this.currentStageIndex = index;
-    if (this.currentStageIndex >= STAGES.length) {
+    if (this.currentStageIndex >= TOTAL_STAGES) {
       this.gameState = "ALL_CLEARED";
       return;
     }
 
-    this.currentStage = STAGES[this.currentStageIndex];
     const playerCount = network.players.size;
+    // 인원수(1명, 2명, N명)에 완벽하게 맞춘 스테이지 맵 생성!
+    this.currentStage = getStageData(this.currentStageIndex, playerCount);
 
-    // 기믹 초기화 (인원수 비례 자동 조절 적용)
+    // 기믹 초기화
     this.gimmickManager.initGimmicks(this.currentStage, playerCount);
 
     // 플레이어들 스폰 위치로 리셋
@@ -411,11 +422,13 @@ class PicoParkApp {
     network.players.forEach(p => {
       p.width = 36;
       p.height = 36;
-      p.x = this.currentStage.spawnPoint.x + (offsetIdx * 28);
+      p.x = this.currentStage.spawnPoint.x + (offsetIdx * 38);
       p.y = this.currentStage.spawnPoint.y;
       p.vx = 0;
       p.vy = 0;
-      p.isGrounded = false;
+      p.isGrounded = true;
+      p.isStackedAbove = false;
+      p.isStackedUnder = false;
       offsetIdx++;
     });
 
@@ -425,7 +438,6 @@ class PicoParkApp {
   // 메인 게임 루프
   gameLoop() {
     this.update();
-    // 개인 화면 모드이거나 호스트 화면일 때 캔버스 렌더링
     if (!this.screenGame.classList.contains("hidden")) {
       this.draw();
     }
@@ -438,31 +450,40 @@ class PicoParkApp {
 
     const myPlayer = network.players.get(network.myId);
     const keyInput = input.getState();
+    const playerList = Array.from(network.players.values());
+
+    // 기본 플랫폼 + 스위치로 활성화된 브릿지/밀린 상자 포함
+    const allPlatforms = [
+      ...this.currentStage.platforms,
+      ...this.gimmickManager.getActivePlatforms()
+    ];
 
     // 1. 내 캐릭터 물리 업데이트 (로컬 예측)
     if (myPlayer) {
-      PhysicsEngine.updatePlayer(myPlayer, this.currentStage.platforms, keyInput);
-      
-      // 내 입력/좌표 상태 전송
+      PhysicsEngine.updatePlayer(myPlayer, allPlatforms, keyInput);
+    }
+
+    // 2. [스택킹 핵심] 호스트와 게스트 모두 로컬에서 플레이어 간 머리 위 올라타기 판정 즉시 연산!
+    PhysicsEngine.resolvePlayerStacking(playerList);
+
+    // 3. 내 입력 및 위치 전송
+    if (myPlayer) {
       network.sendLocalInput({
         x: myPlayer.x,
         y: myPlayer.y,
         vx: myPlayer.vx,
         vy: myPlayer.vy,
         isGrounded: myPlayer.isGrounded,
-        facing: myPlayer.facing
+        facing: myPlayer.facing,
+        isStackedAbove: myPlayer.isStackedAbove,
+        isStackedUnder: myPlayer.isStackedUnder
       });
     }
 
-    // 2. 호스트가 수행하는 전체 물리 연산 및 기믹 동기화
+    // 4. 호스트 권위 물리 연산 및 기믹 동기화
     if (network.isHost) {
-      const playerList = Array.from(network.players.values());
-
-      // 플레이어 간 스택킹(머리 위 올라타기) 연산
-      PhysicsEngine.resolvePlayerStacking(playerList);
-
       // 기믹(스위치, 열쇠, 밀기 상자, 문) 판정
-      this.gimmickManager.update(network.players, this.currentStage.platforms, sound);
+      this.gimmickManager.update(network.players, allPlatforms, sound);
 
       // 스테이지 클리어 처리
       if (this.gimmickManager.stageCleared) {
@@ -489,6 +510,8 @@ class PicoParkApp {
           key: this.gimmickManager.key,
           doorUnlocked: this.gimmickManager.doorUnlocked,
           stageCleared: this.gimmickManager.stageCleared,
+          bridges: this.gimmickManager.bridges.map(br => ({ isActive: br.isActive })),
+          switches: this.gimmickManager.switches.map(sw => ({ isPressed: sw.isPressed })),
           pushBlocks: this.gimmickManager.pushBlocks.map(b => ({ x: b.x, y: b.y }))
         }
       });
@@ -530,7 +553,6 @@ class PicoParkApp {
     ctx.fillStyle = "#334155";
     this.currentStage.platforms.forEach(plat => {
       ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
-      // 타일 상단 잔디/하이라이트
       ctx.fillStyle = "#64748b";
       ctx.fillRect(plat.x, plat.y, plat.width, 6);
       ctx.fillStyle = "#334155";

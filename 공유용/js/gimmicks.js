@@ -16,11 +16,10 @@ export class GimmickManager {
     this.stageCleared = false;
     this.doorUnlocked = false;
 
-    // 1. 열쇠 초기화 (인원수 비례 높이 자동 조절)
+    // 1. 열쇠 초기화
     this.key = {
       x: stageData.key.x,
-      // 2명 이하일 때는 2단 탑 높이로 맞춰 닿을 수 있게 낮춤
-      y: playerCount <= 2 ? stageData.key.y + 40 : stageData.key.y,
+      y: stageData.key.y,
       width: 28,
       height: 28,
       isCollected: false,
@@ -68,6 +67,18 @@ export class GimmickManager {
       height: 64,
       enteredPlayers: new Set()
     };
+  }
+
+  // 활성화된 다리 및 상자를 밟을 수 있는 동적 플랫폼 목록으로 반환
+  getActivePlatforms() {
+    const list = [];
+    this.bridges.forEach(br => {
+      if (br.isActive) list.push(br);
+    });
+    this.pushBlocks.forEach(pb => {
+      list.push(pb);
+    });
+    return list;
   }
 
   // 매 프레임 기믹 상호작용 업데이트
