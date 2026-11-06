@@ -134,6 +134,11 @@ class PicoParkApp {
 
     this.headerRoomChip = document.getElementById("header-room-chip");
     this.headerRoomCode = document.getElementById("header-room-code");
+    this.btnBgmTheme = document.getElementById("btn-bgm-theme");
+    this.textBgmTheme = document.getElementById("text-bgm-theme");
+    this.btnVolDown = document.getElementById("btn-vol-down");
+    this.textVolLevel = document.getElementById("text-vol-level");
+    this.btnVolUp = document.getElementById("btn-vol-up");
     this.btnSoundToggle = document.getElementById("btn-sound-toggle");
     this.toastBox = document.getElementById("toast-box");
 
@@ -196,6 +201,7 @@ class PicoParkApp {
 
     // 방 만들기 클릭
     this.btnCreateRoom.addEventListener("click", async () => {
+      sound.ensureStarted();
       const nickname = this.inputNickname.value.trim() || "선생님";
       this.btnCreateRoom.disabled = true;
       this.showToast("교실 방을 개설하고 있습니다...");
@@ -211,9 +217,11 @@ class PicoParkApp {
 
     // 방 참가하기
     this.btnJoinRoom.addEventListener("click", () => {
+      sound.ensureStarted();
       this.doJoinRoom(this.inputRoomCode.value.trim().toUpperCase(), this.btnJoinRoom);
     });
     this.btnQrJoinRoom.addEventListener("click", () => {
+      sound.ensureStarted();
       this.doJoinRoom(this.invitedRoomCode, this.btnQrJoinRoom);
     });
 
@@ -228,12 +236,58 @@ class PicoParkApp {
     this.badgeRoomCode.addEventListener("click", copyRoomCode);
     this.headerRoomChip.addEventListener("click", copyRoomCode);
 
-    // 사운드 토글
+    // BGM 테마 수동 변경 버튼
+    if (this.btnBgmTheme) {
+      this.btnBgmTheme.addEventListener("click", () => {
+        sound.ensureStarted();
+        const theme = sound.nextTheme();
+        if (this.textBgmTheme) this.textBgmTheme.textContent = `🎵 ${theme.name}`;
+        this.showToast(`음악 테마: ${theme.name} (${theme.description})`);
+      });
+    }
+
+    // 음량 작게 버튼
+    if (this.btnVolDown) {
+      this.btnVolDown.addEventListener("click", () => {
+        sound.ensureStarted();
+        const vol = sound.changeVolume(-0.1);
+        if (this.textVolLevel) this.textVolLevel.textContent = `${vol}%`;
+        if (this.btnSoundToggle) this.btnSoundToggle.textContent = sound.isMuted ? "🔇" : "🔊";
+      });
+    }
+
+    // 음량 크게 버튼
+    if (this.btnVolUp) {
+      this.btnVolUp.addEventListener("click", () => {
+        sound.ensureStarted();
+        const vol = sound.changeVolume(0.1);
+        if (this.textVolLevel) this.textVolLevel.textContent = `${vol}%`;
+        if (this.btnSoundToggle) this.btnSoundToggle.textContent = sound.isMuted ? "🔇" : "🔊";
+      });
+    }
+
+    // 사운드 음소거 토글
     this.btnSoundToggle.addEventListener("click", () => {
+      sound.ensureStarted();
       const isMuted = sound.toggleMute();
       this.btnSoundToggle.textContent = isMuted ? "🔇" : "🔊";
+      if (this.textVolLevel) this.textVolLevel.textContent = `${sound.getVolumePercent()}%`;
       this.showToast(isMuted ? "음소거 활성화" : "소리 켜짐");
     });
+
+    // 브라우저 최초 인터랙션 시 자동 재생 활성화
+    const unlockAudio = () => {
+      sound.ensureStarted();
+      if (this.textBgmTheme) {
+        this.textBgmTheme.textContent = `🎵 ${sound.getCurrentTheme().name}`;
+      }
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+    window.addEventListener("click", unlockAudio, { once: true });
+    window.addEventListener("keydown", unlockAudio, { once: true });
+    window.addEventListener("touchstart", unlockAudio, { once: true });
 
     // 게임 시작 버튼
     this.btnStartGame.addEventListener("click", () => {
@@ -665,6 +719,12 @@ class PicoParkApp {
   loadStage(index, difficulty = "NORMAL") {
     this.currentStageIndex = index;
     this.currentDifficulty = difficulty;
+
+    // 단계별 분위기에 맞춰 탐험 BGM 테마 자동 전환
+    sound.onStageChange(this.currentStageIndex);
+    if (this.textBgmTheme) {
+      this.textBgmTheme.textContent = `🎵 ${sound.getCurrentTheme().name}`;
+    }
 
     if (this.currentStageIndex >= TOTAL_STAGES) {
       this.gameState = "ALL_CLEARED";

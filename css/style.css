@@ -109,6 +109,98 @@ body {
   font-size: 1.1rem;
 }
 
+/* 오디오 및 탐험 BGM 제어 툴바 */
+.audio-control-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  padding: 3px 6px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.btn-theme-badge {
+  background: #eff6ff;
+  color: var(--primary);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-theme-badge:hover {
+  background: #dbeafe;
+  transform: translateY(-1px);
+}
+
+.btn-theme-badge:active {
+  transform: translateY(0);
+}
+
+.vol-control-wrap {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-full);
+  padding: 2px 4px;
+  gap: 2px;
+}
+
+.btn-vol-step {
+  background: transparent;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #475569;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.btn-vol-step:hover {
+  background: #f1f5f9;
+  color: var(--primary);
+}
+
+.text-vol-value {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+  min-width: 32px;
+  text-align: center;
+  user-select: none;
+}
+
+.btn-sound-mute {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-full);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0;
+  transition: background 0.15s;
+}
+
+.btn-sound-mute:hover {
+  background: #f1f5f9;
+}
+
 /* 화면 컨테이너 */
 #app-container {
   width: 100vw;

@@ -36,7 +36,18 @@
         <strong id="header-room-code">------</strong>
         <span>📋</span>
       </div>
-      <button id="btn-sound-toggle" class="btn-icon" title="소리 켜기/끄기">🔊</button>
+      <!-- 배경음악 테마 및 음량 제어 툴바 -->
+      <div class="audio-control-bar" title="배경음악 및 사운드 조절">
+        <button id="btn-bgm-theme" class="btn-theme-badge" title="클릭하여 탐험 음악 테마 변경">
+          <span id="text-bgm-theme">🎵 🌲 초원 탐험</span>
+        </button>
+        <div class="vol-control-wrap">
+          <button id="btn-vol-down" class="btn-vol-step" title="음량 작게">🔉 -</button>
+          <span id="text-vol-level" class="text-vol-value">70%</span>
+          <button id="btn-vol-up" class="btn-vol-step" title="음량 크게">🔊 +</button>
+        </div>
+        <button id="btn-sound-toggle" class="btn-sound-mute" title="소리 켜기/끄기 (음소거)">🔊</button>
+      </div>
     </div>
   </header>
 
