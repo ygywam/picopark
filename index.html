@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>피코파크 웹 멀티플레이어 - PICO PARK Web</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 상단 네비게이션 헤더 -->
+  <header class="game-header">
+    <div class="logo-area">
+      <span>🐱 PICO PARK WEB</span>
+      <span class="logo-badge">실시간 협동</span>
+    </div>
+    <div class="header-status">
+      <div id="header-room-chip" class="room-chip hidden" title="클릭하여 방 코드 복사">
+        <span>방 코드:</span>
+        <strong id="header-room-code">------</strong>
+        <span>📋</span>
+      </div>
+      <button id="btn-sound-toggle" class="btn-icon" title="소리 켜기/끄기">🔊</button>
+    </div>
+  </header>
+
+  <!-- 메인 뷰포트 컨테이너 -->
+  <div id="app-container">
+
+    <!-- 1. 메인 입장 로비 화면 -->
+    <div id="screen-lobby" class="lobby-screen">
+      <h1 class="lobby-title">피코파크 웹</h1>
+      <p class="lobby-subtitle">다 함께 머리 위에 올라타고 협동하여 문을 여세요!</p>
+
+      <div class="input-group">
+        <label for="input-nickname" class="input-label">내 닉네임</label>
+        <input type="text" id="input-nickname" class="text-input" placeholder="이름을 입력하세요" maxlength="10" value="플레이어1">
+      </div>
+
+      <div class="lobby-actions">
+        <button id="btn-create-room" class="btn btn-primary">
+          <span>🏠 새 방 만들기 (방장)</span>
+        </button>
+
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <input type="text" id="input-room-code" class="text-input" placeholder="6자리 방 코드" maxlength="6" style="text-transform: uppercase; font-weight: 700; letter-spacing: 2px;">
+          <button id="btn-join-room" class="btn btn-secondary" style="width: auto; white-space: nowrap;">
+            입장하기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 대기실(방) 화면 -->
+    <div id="screen-room" class="room-screen hidden">
+      <div class="room-header">
+        <div>
+          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">초대 코드 (클릭 시 복사)</span>
+          <div id="badge-room-code" class="room-code-badge" title="클릭하여 링크 복사">
+            <span id="text-room-code">------</span>
+            <span style="font-size: 1rem;">📋</span>
+          </div>
+        </div>
+        <div class="player-count-tag">
+          참가자: <span id="text-player-count">1</span> / 30명
+        </div>
+      </div>
+
+      <div id="lobby-player-grid" class="player-grid">
+        <!-- 참가자 카드가 동적으로 추가됨 -->
+      </div>
+
+      <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px;">
+        <button id="btn-start-game" class="btn btn-success hidden">
+          🚀 게임 시작하기
+        </button>
+        <p id="guest-waiting-text" class="lobby-subtitle hidden" style="margin-bottom: 0;">
+          방장이 게임을 시작하기를 기다리고 있습니다...
+        </p>
+      </div>
+    </div>
+
+    <!-- 3. 게임 플레이 캔버스 화면 -->
+    <div id="screen-game" class="game-viewport hidden">
+      <canvas id="game-canvas" width="1280" height="720"></canvas>
+
+      <!-- 모바일 가상 컨트롤러 (터치 기기용) -->
+      <div id="mobile-controls" class="mobile-controls hidden">
+        <div class="d-pad-group">
+          <button id="btn-touch-left" class="touch-btn btn-dpad">◀</button>
+          <button id="btn-touch-right" class="touch-btn btn-dpad">▶</button>
+        </div>
+        <div>
+          <button id="btn-touch-jump" class="touch-btn btn-jump">JUMP</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 토스트 알림창 -->
+  <div id="toast-box">알림 메시지</div>
+
+  <!-- PeerJS 로컬 번들 로드 -->
+  <script src="js/lib/peerjs.min.js"></script>
+  <!-- 메인 모듈 로드 -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
