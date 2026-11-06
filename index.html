@@ -8,7 +8,7 @@
 </head>
 <body>
 
-  <!-- 모바일 세로모드 감지 시 가로 회전 안내 오버레이 -->
+  <!-- 모바일 세로모드 감지 시 가로 회전 안내 오버레이 (게임 중/대기실에서만 작동) -->
   <div id="landscape-warning" class="hidden">
     <div class="rotate-icon">📱 🔄</div>
     <h2 style="font-size: 1.4rem; margin-bottom: 8px;">스마트폰을 가로로 돌려주세요!</h2>
@@ -43,14 +43,21 @@
     <!-- 1. 메인 입장 로비 화면 -->
     <div id="screen-lobby" class="lobby-screen">
       <h1 class="lobby-title">피코파크 웹</h1>
-      <p class="lobby-subtitle">다 함께 머리 위에 올라타고 협동하여 문을 여세요!</p>
+      <p id="lobby-desc-text" class="lobby-subtitle">다 함께 머리 위에 올라타고 협동하여 문을 여세요!</p>
 
-      <div class="input-group">
-        <label for="input-nickname" class="input-label">내 닉네임</label>
-        <input type="text" id="input-nickname" class="text-input" placeholder="이름 또는 학번/번호" maxlength="10" value="학생1">
+      <!-- QR 스캔으로 접속한 학생에게만 뜨는 초대 배지 -->
+      <div id="qr-invited-badge" class="qr-invited-box hidden">
+        <span>선생님 방 초대 완료</span>
+        <strong id="text-invited-code">------</strong>
       </div>
 
-      <div class="lobby-actions">
+      <div class="input-group">
+        <label for="input-nickname" class="input-label">내 닉네임 (이름 또는 번호)</label>
+        <input type="text" id="input-nickname" class="text-input" placeholder="이름을 입력하세요 (예: 3번 김민우)" maxlength="10">
+      </div>
+
+      <!-- A. 일반 접속 시: 교사용 방 만들기 + 방 코드 입력 영역 -->
+      <div id="lobby-normal-actions" class="lobby-actions">
         <button id="btn-create-room" class="btn btn-primary">
           <span>🏠 교사용 새 방 만들기 (칠판 띄우기)</span>
         </button>
@@ -61,6 +68,14 @@
             입장하기
           </button>
         </div>
+      </div>
+
+      <!-- B. QR 스캔 접속 시: 학생용 단일 입장 버튼 (새 방 만들기 버튼 원천 차단) -->
+      <div id="lobby-qr-actions" class="lobby-actions hidden">
+        <button id="btn-qr-join-room" class="btn btn-success" style="font-size: 1.15rem; padding: 16px;">
+          <span>🎮 게임 방 입장하기</span>
+        </button>
+        <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">입장 후 화면을 가로로 돌려 게임패드로 조작합니다.</span>
       </div>
     </div>
 
@@ -84,7 +99,7 @@
         <div class="qr-box-wrapper">
           <div id="qr-code-img"></div>
           <div class="qr-guide-text">
-            <span>📷 카메라로 스캔하여</span><br>
+            <span>📷 스마트폰 카메라로 스캔하여</span><br>
             <strong>바로 입장하세요!</strong>
           </div>
         </div>

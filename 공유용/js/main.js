@@ -23,6 +23,7 @@ class PicoParkApp {
     // 모바일 조작 모드: 'GAMEPAD' (패드 전용 · 교실 화면 보기) | 'SCREEN' (내 폰 화면 보기)
     this.mobilePlayMode = "GAMEPAD";
     this.isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    this.isInvitedViaQR = false;
 
     this.initDOM();
     this.initNetworkCallbacks();
@@ -44,6 +45,14 @@ class PicoParkApp {
     this.btnStartGame = document.getElementById("btn-start-game");
     this.guestWaitingText = document.getElementById("guest-waiting-text");
 
+    // QR 전용 분기 요소
+    this.lobbyNormalActions = document.getElementById("lobby-normal-actions");
+    this.lobbyQrActions = document.getElementById("lobby-qr-actions");
+    this.btnQrJoinRoom = document.getElementById("btn-qr-join-room");
+    this.qrInvitedBadge = document.getElementById("qr-invited-badge");
+    this.textInvitedCode = document.getElementById("text-invited-code");
+    this.lobbyDescText = document.getElementById("lobby-desc-text");
+
     this.badgeRoomCode = document.getElementById("badge-room-code");
     this.textRoomCode = document.getElementById("text-room-code");
     this.textPlayerCount = document.getElementById("text-player-count");
@@ -60,10 +69,6 @@ class PicoParkApp {
     this.btnModeGamepad = document.getElementById("btn-mode-gamepad");
     this.btnModeScreen = document.getElementById("btn-mode-screen");
     this.mobileControls = document.getElementById("mobile-controls");
-
-    if (this.isTouchDevice) {
-      this.mobileModeBar.classList.remove("hidden");
-    }
 
     this.btnModeGamepad.addEventListener("click", () => {
       this.setMobilePlayMode("GAMEPAD");
@@ -88,26 +93,16 @@ class PicoParkApp {
       }
     });
 
-    // 방 참가하기 클릭 (학생용)
-    this.btnJoinRoom.addEventListener("click", async () => {
-      const nickname = this.inputNickname.value.trim() || "학생";
+    // 방 참가하기 클릭 (일반 입력)
+    this.btnJoinRoom.addEventListener("click", () => {
       const roomCode = this.inputRoomCode.value.trim().toUpperCase();
+      this.doJoinRoom(roomCode, this.btnJoinRoom);
+    });
 
-      if (!roomCode || roomCode.length < 4) {
-        this.showToast("올바른 6자리 방 코드를 입력하세요.");
-        return;
-      }
-
-      this.btnJoinRoom.disabled = true;
-      this.showToast("방에 입장하는 중입니다...");
-
-      try {
-        const { roomCode: code } = await network.joinRoom(roomCode, nickname);
-        this.onRoomReady(code, false);
-      } catch (err) {
-        this.btnJoinRoom.disabled = false;
-        this.showToast("입장 실패: 방 코드를 확인해 주세요.");
-      }
+    // 방 참가하기 클릭 (QR 학생 전용 버튼)
+    this.btnQrJoinRoom.addEventListener("click", () => {
+      const roomCode = this.invitedRoomCode;
+      this.doJoinRoom(roomCode, this.btnQrJoinRoom);
     });
 
     // 방 코드 클릭 시 복사
@@ -134,35 +129,78 @@ class PicoParkApp {
     });
   }
 
+  // 실제 입장 로직
+  async doJoinRoom(roomCode, btnElement) {
+    const nickname = this.inputNickname.value.trim() || `학생${Math.floor(Math.random() * 89 + 10)}`;
+
+    if (!roomCode || roomCode.length < 4) {
+      this.showToast("올바른 6자리 방 코드가 필요합니다.");
+      return;
+    }
+
+    if (btnElement) btnElement.disabled = true;
+    this.showToast("선생님 방에 입장하는 중입니다...");
+
+    try {
+      const { roomCode: code } = await network.joinRoom(roomCode, nickname);
+      this.onRoomReady(code, false);
+    } catch (err) {
+      if (btnElement) btnElement.disabled = false;
+      this.showToast("입장 실패: 방 코드를 확인해 주세요.");
+    }
+  }
+
   // URL 쿼리스트링(?room=CODE) 자동 감지
   checkUrlRoomParam() {
     const params = new URLSearchParams(window.location.search);
     const roomParam = params.get("room");
+
     if (roomParam) {
-      this.inputRoomCode.value = roomParam.trim().toUpperCase();
-      this.showToast("QR 코드로 방 코드가 자동 입력되었습니다! 닉네임을 적고 입장하세요.");
-      // 닉네임 입력창에 자동 포커스
-      setTimeout(() => this.inputNickname.focus(), 300);
+      this.isInvitedViaQR = true;
+      this.invitedRoomCode = roomParam.trim().toUpperCase();
+
+      // 학생용 전용 로비 UI로 전환 (교사용 새 방 만들기 버튼 원천 차단)
+      this.lobbyNormalActions.classList.add("hidden");
+      this.lobbyQrActions.classList.remove("hidden");
+      this.qrInvitedBadge.classList.remove("hidden");
+      this.textInvitedCode.textContent = this.invitedRoomCode;
+      this.lobbyDescText.textContent = "선생님 방에 연결되었습니다! 닉네임을 적고 입장하세요.";
+
+      // 모바일 기본 닉네임 힌트 제공 및 포커스
+      this.inputNickname.placeholder = "내 이름 입력 (예: 김철수)";
+      setTimeout(() => {
+        this.inputNickname.focus();
+      }, 400);
+
+      this.showToast("QR 코드로 초대되었습니다! 이름을 적고 입장하세요.");
     }
   }
 
-  // 가로/세로 화면 회전 안내 핸들러
+  // 가로/세로 화면 회전 안내 핸들러 (로비에서는 안내를 띄우지 않고, 입장 후에만 띄움)
   initOrientationHandler() {
-    const warning = document.getElementById("landscape-warning");
-    const checkOrientation = () => {
+    this.landscapeWarning = document.getElementById("landscape-warning");
+    
+    this.checkOrientation = () => {
+      // 로비에서는 닉네임 입력을 위해 세로 화면 허용!
+      if (this.gameState === "LOBBY") {
+        this.landscapeWarning.classList.add("hidden");
+        return;
+      }
+
+      // 방 입장 후 또는 게임 중일 때만 가로모드 유도
       if (this.isTouchDevice) {
         const isPortrait = window.innerHeight > window.innerWidth;
         if (isPortrait) {
-          warning.classList.remove("hidden");
+          this.landscapeWarning.classList.remove("hidden");
         } else {
-          warning.classList.add("hidden");
+          this.landscapeWarning.classList.add("hidden");
         }
       }
     };
 
-    window.addEventListener("resize", checkOrientation);
-    window.addEventListener("orientationchange", checkOrientation);
-    checkOrientation();
+    window.addEventListener("resize", this.checkOrientation);
+    window.addEventListener("orientationchange", this.checkOrientation);
+    this.checkOrientation();
   }
 
   // 모바일 플레이 모드 설정
@@ -208,16 +246,32 @@ class PicoParkApp {
     this.headerRoomCode.textContent = roomCode;
     this.headerRoomChip.classList.remove("hidden");
 
+    // 입장 후부터 가로 회전 검사 활성화
+    if (this.checkOrientation) {
+      this.checkOrientation();
+    }
+
     if (isHost) {
       this.btnStartGame.classList.remove("hidden");
       this.guestWaitingText.classList.add("hidden");
     } else {
       this.btnStartGame.classList.add("hidden");
       this.guestWaitingText.classList.remove("hidden");
+      // 학생이 입장하면 모바일일 때 가로모드 안내 토스트
+      if (this.isTouchDevice) {
+        this.mobileModeBar.classList.remove("hidden");
+        this.showToast("기기를 가로로 쥐고 게임패드로 조작할 준비를 하세요!");
+      }
     }
 
-    // QR 코드 생성 (교실 프로젝터 화면용)
-    this.renderRoomQRCode(roomCode);
+    // QR 코드 생성 (교사용 칠판 화면용)
+    if (isHost) {
+      this.renderRoomQRCode(roomCode);
+    } else {
+      // 학생 대기실에서는 QR 영역 대신 환영 배지 표시
+      const qrWrapper = document.querySelector(".qr-box-wrapper");
+      if (qrWrapper) qrWrapper.style.display = "none";
+    }
   }
 
   // 프로젝터용 초대 QR 코드 렌더링

@@ -145,6 +145,30 @@ body {
   margin-bottom: 24px;
 }
 
+/* QR 스캔 학생 초대 박스 */
+.qr-invited-box {
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #065f46;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.qr-invited-box strong {
+  background: #10b981;
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  letter-spacing: 2px;
+  font-size: 1.05rem;
+}
+
 .input-group {
   margin-bottom: 18px;
   text-align: left;
