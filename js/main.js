@@ -409,6 +409,8 @@ class PicoParkApp {
     // 플레이어들 스폰 위치로 리셋
     let offsetIdx = 0;
     network.players.forEach(p => {
+      p.width = 36;
+      p.height = 36;
       p.x = this.currentStage.spawnPoint.x + (offsetIdx * 28);
       p.y = this.currentStage.spawnPoint.y;
       p.vx = 0;

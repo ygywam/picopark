@@ -5,7 +5,7 @@ export const STAGES = [
   {
     name: "STAGE 1 · 인간 탑 쌓기",
     description: "서로의 머리 위에 올라타 높은 곳의 열쇠를 획득하고 문으로 탈출하세요!",
-    spawnPoint: { x: 120, y: 580 },
+    spawnPoint: { x: 120, y: 604 },
     platforms: [
       // 바닥
       { x: 0, y: 640, width: 1280, height: 80 },
@@ -25,7 +25,7 @@ export const STAGES = [
   {
     name: "STAGE 2 · 협동 발판과 밀기",
     description: "스위치를 밟아 다리를 만들고, 다 함께 힘을 합쳐 블록을 밀어내세요!",
-    spawnPoint: { x: 80, y: 580 },
+    spawnPoint: { x: 80, y: 604 },
     platforms: [
       // 왼쪽 시작 구역 바닥
       { x: 0, y: 640, width: 440, height: 80 },
@@ -54,7 +54,7 @@ export const STAGES = [
   {
     name: "STAGE 3 · 다층 타워 협동",
     description: "팀원들과 역할을 나누어 각 층의 스위치와 열쇠를 연결하세요!",
-    spawnPoint: { x: 80, y: 580 },
+    spawnPoint: { x: 80, y: 604 },
     platforms: [
       // 1층 바닥
       { x: 0, y: 640, width: 1280, height: 80 },

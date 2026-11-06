@@ -8,6 +8,10 @@ export const PLAYER_SIZE = 36;
 export class PhysicsEngine {
   // 플랫폼 및 타일과의 충돌 처리
   static updatePlayer(player, platforms, input, deltaTime = 1) {
+    // 플레이어 크기 보장 (NaN 방지)
+    player.width = player.width || PLAYER_SIZE;
+    player.height = player.height || PLAYER_SIZE;
+
     // 1. 수평 이동 입력 처리
     if (input.left) {
       player.vx = -MOVE_SPEED;
@@ -64,7 +68,7 @@ export class PhysicsEngine {
       }
     });
 
-    // 화면 경계 제한 (1280 x 720)
+    // 6. 화면 좌우 경계 제한 (1280 x 720)
     if (player.x < 0) {
       player.x = 0;
       player.vx = 0;
@@ -73,17 +77,27 @@ export class PhysicsEngine {
       player.x = 1280 - player.width;
       player.vx = 0;
     }
+
+    // 7. 절대 바닥 관통 차단 (바닥 y=640 뚫림 방지)
+    const floorLimit = 640 - player.height;
+    if (player.y > floorLimit) {
+      player.y = floorLimit;
+      player.vy = 0;
+      player.isGrounded = true;
+    }
   }
 
   // 플레이어 간 상하 스택킹(머리 위 올라타기) 및 좌우 충돌 연산
   static resolvePlayerStacking(playerList) {
-    // 모든 플레이어의 스택 상태 초기화
+    // 모든 플레이어의 스택 상태 초기화 및 크기 보장
     playerList.forEach(p => {
+      p.width = p.width || PLAYER_SIZE;
+      p.height = p.height || PLAYER_SIZE;
       p.isStackedUnder = false;
       p.isStackedAbove = false;
     });
 
-    // Y 좌표 기준 오름차순(위에서부터 아래로) 또는 아래에서부터 위로 정렬하여 연산
+    // Y 좌표 기준 아래에 있는 플레이어부터 정렬하여 연산
     const sorted = [...playerList].sort((a, b) => b.y - a.y);
 
     for (let i = 0; i < sorted.length; i++) {
@@ -101,7 +115,7 @@ export class PhysicsEngine {
           const feetY = upper.y + upper.height;
           const headY = lower.y;
 
-          if (feetY >= headY - 4 && feetY <= headY + 12 && upper.vy >= 0) {
+          if (feetY >= headY - 6 && feetY <= headY + 14 && upper.vy >= 0) {
             // 머리 위 착지 성공!
             upper.y = headY - upper.height;
             upper.vy = 0;
@@ -120,13 +134,18 @@ export class PhysicsEngine {
     }
   }
 
-  // 기본 AABB 충돌 검사
+  // 기본 AABB 충돌 검사 (Fallback 크기 보장)
   static checkAABB(rectA, rectB) {
+    const wA = rectA.width || PLAYER_SIZE;
+    const hA = rectA.height || PLAYER_SIZE;
+    const wB = rectB.width || 0;
+    const hB = rectB.height || 0;
+
     return (
-      rectA.x < rectB.x + rectB.width &&
-      rectA.x + rectA.width > rectB.x &&
-      rectA.y < rectB.y + rectB.height &&
-      rectA.y + rectA.height > rectB.y
+      rectA.x < rectB.x + wB &&
+      rectA.x + wA > rectB.x &&
+      rectA.y < rectB.y + hB &&
+      rectA.y + hA > rectB.y
     );
   }
 }
