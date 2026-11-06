@@ -19,9 +19,15 @@ class PicoParkApp {
 
     this.gameState = "LOBBY"; // LOBBY, ROOM, PLAYING, CLEARED, ALL_CLEARED
     this.clearTimer = 0;
+    
+    // 모바일 조작 모드: 'GAMEPAD' (패드 전용 · 교실 화면 보기) | 'SCREEN' (내 폰 화면 보기)
+    this.mobilePlayMode = "GAMEPAD";
+    this.isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
     this.initDOM();
     this.initNetworkCallbacks();
+    this.checkUrlRoomParam();
+    this.initOrientationHandler();
   }
 
   // DOM 요소 및 이벤트 리스너 바인딩
@@ -29,6 +35,7 @@ class PicoParkApp {
     this.screenLobby = document.getElementById("screen-lobby");
     this.screenRoom = document.getElementById("screen-room");
     this.screenGame = document.getElementById("screen-game");
+    this.screenGamepad = document.getElementById("screen-gamepad");
 
     this.inputNickname = document.getElementById("input-nickname");
     this.inputRoomCode = document.getElementById("input-room-code");
@@ -41,17 +48,36 @@ class PicoParkApp {
     this.textRoomCode = document.getElementById("text-room-code");
     this.textPlayerCount = document.getElementById("text-player-count");
     this.lobbyPlayerGrid = document.getElementById("lobby-player-grid");
+    this.qrCodeContainer = document.getElementById("qr-code-img");
 
     this.headerRoomChip = document.getElementById("header-room-chip");
     this.headerRoomCode = document.getElementById("header-room-code");
     this.btnSoundToggle = document.getElementById("btn-sound-toggle");
     this.toastBox = document.getElementById("toast-box");
 
-    // 방 만들기 클릭
+    // 모바일 듀얼 모드 토글
+    this.mobileModeBar = document.getElementById("mobile-mode-bar");
+    this.btnModeGamepad = document.getElementById("btn-mode-gamepad");
+    this.btnModeScreen = document.getElementById("btn-mode-screen");
+    this.mobileControls = document.getElementById("mobile-controls");
+
+    if (this.isTouchDevice) {
+      this.mobileModeBar.classList.remove("hidden");
+    }
+
+    this.btnModeGamepad.addEventListener("click", () => {
+      this.setMobilePlayMode("GAMEPAD");
+    });
+
+    this.btnModeScreen.addEventListener("click", () => {
+      this.setMobilePlayMode("SCREEN");
+    });
+
+    // 방 만들기 클릭 (교사용)
     this.btnCreateRoom.addEventListener("click", async () => {
-      const nickname = this.inputNickname.value.trim() || "방장";
+      const nickname = this.inputNickname.value.trim() || "선생님";
       this.btnCreateRoom.disabled = true;
-      this.showToast("방을 개설하고 있습니다...");
+      this.showToast("교실 방을 개설하고 있습니다...");
 
       try {
         const { roomCode } = await network.createRoom(nickname);
@@ -62,9 +88,9 @@ class PicoParkApp {
       }
     });
 
-    // 방 참가하기 클릭
+    // 방 참가하기 클릭 (학생용)
     this.btnJoinRoom.addEventListener("click", async () => {
-      const nickname = this.inputNickname.value.trim() || "플레이어";
+      const nickname = this.inputNickname.value.trim() || "학생";
       const roomCode = this.inputRoomCode.value.trim().toUpperCase();
 
       if (!roomCode || roomCode.length < 4) {
@@ -87,8 +113,9 @@ class PicoParkApp {
     // 방 코드 클릭 시 복사
     const copyRoomCode = () => {
       if (!network.roomCode) return;
-      navigator.clipboard.writeText(network.roomCode).then(() => {
-        this.showToast(`방 코드 [${network.roomCode}]가 복사되었습니다!`);
+      const shareUrl = `${window.location.origin}${window.location.pathname}?room=${network.roomCode}`;
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        this.showToast(`초대 링크가 복사되었습니다!`);
       });
     };
     this.badgeRoomCode.addEventListener("click", copyRoomCode);
@@ -101,13 +128,77 @@ class PicoParkApp {
       this.showToast(isMuted ? "음소거 활성화" : "소리 켜짐");
     });
 
-    // 게임 시작 버튼 (방장)
+    // 게임 시작 버튼 (교사용)
     this.btnStartGame.addEventListener("click", () => {
       network.startGame();
     });
   }
 
-  // 방 입장 완료 시 화면 전환
+  // URL 쿼리스트링(?room=CODE) 자동 감지
+  checkUrlRoomParam() {
+    const params = new URLSearchParams(window.location.search);
+    const roomParam = params.get("room");
+    if (roomParam) {
+      this.inputRoomCode.value = roomParam.trim().toUpperCase();
+      this.showToast("QR 코드로 방 코드가 자동 입력되었습니다! 닉네임을 적고 입장하세요.");
+      // 닉네임 입력창에 자동 포커스
+      setTimeout(() => this.inputNickname.focus(), 300);
+    }
+  }
+
+  // 가로/세로 화면 회전 안내 핸들러
+  initOrientationHandler() {
+    const warning = document.getElementById("landscape-warning");
+    const checkOrientation = () => {
+      if (this.isTouchDevice) {
+        const isPortrait = window.innerHeight > window.innerWidth;
+        if (isPortrait) {
+          warning.classList.remove("hidden");
+        } else {
+          warning.classList.add("hidden");
+        }
+      }
+    };
+
+    window.addEventListener("resize", checkOrientation);
+    window.addEventListener("orientationchange", checkOrientation);
+    checkOrientation();
+  }
+
+  // 모바일 플레이 모드 설정
+  setMobilePlayMode(mode) {
+    this.mobilePlayMode = mode;
+    if (mode === "GAMEPAD") {
+      this.btnModeGamepad.classList.add("active");
+      this.btnModeScreen.classList.remove("active");
+      this.showToast("🎮 패드 전용 모드: 교실 칠판 화면을 보며 조작하세요!");
+    } else {
+      this.btnModeScreen.classList.add("active");
+      this.btnModeGamepad.classList.remove("active");
+      this.showToast("📱 개인 화면 모드: 내 폰 화면을 직접 봅니다.");
+    }
+    this.applyPlayModeUI();
+  }
+
+  applyPlayModeUI() {
+    if (this.gameState !== "PLAYING") return;
+
+    if (this.isTouchDevice && this.mobilePlayMode === "GAMEPAD") {
+      // 폰 화면은 캔버스 숨기고 전체 거대 게임패드만 표시
+      this.screenGame.classList.add("hidden");
+      this.screenGamepad.classList.remove("hidden");
+      this.mobileControls.classList.add("hidden");
+    } else {
+      // 캔버스 렌더링 + 모바일일 경우 반투명 오버레이 패드
+      this.screenGame.classList.remove("hidden");
+      this.screenGamepad.classList.add("hidden");
+      if (this.isTouchDevice) {
+        this.mobileControls.classList.remove("hidden");
+      }
+    }
+  }
+
+  // 방 입장 완료 시 화면 전환 및 QR 코드 생성
   onRoomReady(roomCode, isHost) {
     this.gameState = "ROOM";
     this.screenLobby.classList.add("hidden");
@@ -124,6 +215,28 @@ class PicoParkApp {
       this.btnStartGame.classList.add("hidden");
       this.guestWaitingText.classList.remove("hidden");
     }
+
+    // QR 코드 생성 (교실 프로젝터 화면용)
+    this.renderRoomQRCode(roomCode);
+  }
+
+  // 프로젝터용 초대 QR 코드 렌더링
+  renderRoomQRCode(roomCode) {
+    if (!this.qrCodeContainer) return;
+    this.qrCodeContainer.innerHTML = "";
+
+    const joinUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
+
+    if (window.QRCode) {
+      new window.QRCode(this.qrCodeContainer, {
+        text: joinUrl,
+        width: 140,
+        height: 140,
+        colorDark: "#0f172a",
+        colorLight: "#ffffff",
+        correctLevel: window.QRCode.CorrectLevel.M
+      });
+    }
   }
 
   // 네트워크 이벤트 콜백 등록
@@ -139,7 +252,7 @@ class PicoParkApp {
       this.loadStage(data.stage - 1);
       this.gameState = "PLAYING";
       this.screenRoom.classList.add("hidden");
-      this.screenGame.classList.remove("hidden");
+      this.applyPlayModeUI();
       this.showToast("게임 시작! 다 함께 협동하여 문으로 탈출하세요!");
 
       requestAnimationFrame(this.gameLoop.bind(this));
@@ -152,7 +265,7 @@ class PicoParkApp {
         data.players.forEach(remoteP => {
           if (network.players.has(remoteP.id)) {
             const localP = network.players.get(remoteP.id);
-            // 내 캐릭터는 로컬 예측을 우선하되 큰 오차 보정
+            // 내 캐릭터는 로컬 예측을 우선하되 오차 보정
             if (remoteP.id === network.myId) {
               if (Math.hypot(remoteP.x - localP.x, remoteP.y - localP.y) > 40) {
                 localP.x = remoteP.x;
@@ -256,7 +369,10 @@ class PicoParkApp {
   // 메인 게임 루프
   gameLoop() {
     this.update();
-    this.draw();
+    // 개인 화면 모드이거나 호스트 화면일 때 캔버스 렌더링
+    if (!this.screenGame.classList.contains("hidden")) {
+      this.draw();
+    }
     requestAnimationFrame(this.gameLoop.bind(this));
   }
 

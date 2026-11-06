@@ -93,6 +93,15 @@ class InputController {
     bindTouch(btnLeft, "left");
     bindTouch(btnRight, "right");
     bindTouch(btnJump, "jump");
+
+    // 거대 게임패드 전용 모드 버튼 바인딩
+    const btnPadLeft = document.getElementById("btn-pad-left");
+    const btnPadRight = document.getElementById("btn-pad-right");
+    const btnPadJump = document.getElementById("btn-pad-jump");
+
+    bindTouch(btnPadLeft, "left");
+    bindTouch(btnPadRight, "right");
+    bindTouch(btnPadJump, "jump");
   }
 
   getState() {
