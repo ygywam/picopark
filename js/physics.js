@@ -87,6 +87,100 @@ export class PhysicsEngine {
     }
   }
 
+  // 플레이어 간 로프(인간 밧줄/번지점프) 물리 연산
+  static resolveRopePhysics(playerList, ropeConfig = { restLength: 150, maxForce: 6 }) {
+    if (!playerList || playerList.length < 2) return;
+
+    const restLen = ropeConfig.restLength || 150;
+    const stiffness = 0.07; // 밧줄 탄성 계수
+
+    // 0번-1번, 1번-2번 ... 순차적으로 체인 연결
+    for (let i = 0; i < playerList.length - 1; i++) {
+      const p1 = playerList[i];
+      const p2 = playerList[i + 1];
+
+      const c1x = p1.x + p1.width / 2;
+      const c1y = p1.y + p1.height / 2;
+      const c2x = p2.x + p2.width / 2;
+      const c2y = p2.y + p2.height / 2;
+
+      const dx = c2x - c1x;
+      const dy = c2y - c1y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > restLen) {
+        const excess = dist - restLen;
+        const angle = Math.atan2(dy, dx);
+        const force = Math.min(ropeConfig.maxForce || 8, excess * stiffness);
+
+        const fx = Math.cos(angle) * force;
+        const fy = Math.sin(angle) * force;
+
+        // p1이 바닥에 서서 버티고 있다면 p1은 덜 끌려가고 p2가 위로 크게 당겨짐
+        const p1Anchor = p1.isGrounded ? 0.3 : 1.0;
+        const p2Anchor = p2.isGrounded ? 0.3 : 1.0;
+
+        p1.vx += fx * p1Anchor;
+        p1.vy += fy * p1Anchor;
+
+        p2.vx -= fx * p2Anchor;
+        p2.vy -= fy * p2Anchor;
+
+        // 절벽에 매달려 있을 때 중력 상쇄 (대롱대롱 공중 버티기)
+        if (p2.y > p1.y + 40 && p1.isGrounded) {
+          p2.vy = Math.min(p2.vy, 1.5); // 급격한 추락 억제
+        }
+        if (p1.y > p2.y + 40 && p2.isGrounded) {
+          p1.vy = Math.min(p1.vy, 1.5);
+        }
+      }
+    }
+  }
+
+  // 밧줄 렌더링 헬퍼 (베지어 곡선)
+  static drawRopes(ctx, playerList, restLen = 150) {
+    if (!playerList || playerList.length < 2) return;
+
+    for (let i = 0; i < playerList.length - 1; i++) {
+      const p1 = playerList[i];
+      const p2 = playerList[i + 1];
+
+      const c1x = p1.x + p1.width / 2;
+      const c1y = p1.y + p1.height / 2;
+      const c2x = p2.x + p2.width / 2;
+      const c2y = p2.y + p2.height / 2;
+
+      const dist = Math.hypot(c2x - c1x, c2y - c1y);
+      const isStretched = dist > restLen;
+
+      // 처짐 정도 계산
+      const sag = isStretched ? 0 : Math.min(25, (restLen - dist) * 0.4);
+      const midX = (c1x + c2x) / 2;
+      const midY = (c1y + c2y) / 2 + sag;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(c1x, c1y);
+      ctx.quadraticCurveTo(midX, midY, c2x, c2y);
+
+      // 밧줄 스타일 (팽팽하면 주황색, 평소에는 따뜻한 브라운 밧줄)
+      ctx.strokeStyle = isStretched ? "#ea580c" : "#78350f";
+      ctx.lineWidth = isStretched ? 3.5 : 4;
+      ctx.lineCap = "round";
+      ctx.stroke();
+
+      // 밧줄 매듭 디테일
+      ctx.fillStyle = "#451a03";
+      ctx.beginPath();
+      ctx.arc(c1x, c1y, 4, 0, Math.PI * 2);
+      ctx.arc(c2x, c2y, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+  }
+  }
+
   // 플레이어 간 상하 스택킹(머리 위 올라타기) 및 좌우 충돌 연산
   static resolvePlayerStacking(playerList) {
     // 모든 플레이어의 스택 상태 초기화 및 크기 보장

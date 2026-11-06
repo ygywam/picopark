@@ -168,6 +168,14 @@ class NetworkManager {
         }
         break;
       }
+
+      case "player_cheer": {
+        // 벤치 학생의 응원 이모지 수신
+        if (this.onCheerReceived) {
+          this.onCheerReceived(data.emoji, data.nickname);
+        }
+        break;
+      }
     }
   }
 
@@ -269,18 +277,33 @@ class NetworkManager {
     if (this.onLobbyUpdate) this.onLobbyUpdate(list);
   }
 
-  // 게임 시작 신호 전송 (호스트 전용)
-  startGame() {
+  // 게임 시작 신호 전송 (호스트 전용 - 스테이지 및 난이도, 출전 명단 포함)
+  startGame(stageIndex = 0, difficulty = "NORMAL", activePlayerIds = null) {
     if (!this.isHost) return;
     const payload = {
       type: "game_start",
-      stage: 1,
+      stageIndex: stageIndex,
+      difficulty: difficulty,
+      activePlayerIds: activePlayerIds,
       playerCount: this.players.size
     };
     this.guestConnections.forEach(g => {
       if (g.conn.open) g.conn.send(payload);
     });
     if (this.onGameStart) this.onGameStart(payload);
+  }
+
+  // 벤치 학생의 응원 전송 (게스트 -> 호스트)
+  sendCheer(emoji) {
+    if (this.isHost) {
+      if (this.onCheerReceived) this.onCheerReceived(emoji, this.myNickname);
+    } else if (this.hostConnection && this.hostConnection.open) {
+      this.hostConnection.send({
+        type: "player_cheer",
+        emoji: emoji,
+        nickname: this.myNickname
+      });
+    }
   }
 
   // 실시간 물리 상태 동기화 패킷 전송 (호스트 -> 게스트)

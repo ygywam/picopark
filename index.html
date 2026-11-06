@@ -22,6 +22,15 @@
       <span class="logo-badge">교실 협동</span>
     </div>
     <div class="header-status">
+      <!-- 방장용 인게임 제어 툴 -->
+      <div id="host-game-controls" class="hidden" style="display: flex; gap: 6px;">
+        <button id="btn-change-players" class="btn-icon" title="출전 선수 체인지 (다음 학생 투입)" style="width: auto; padding: 0 10px; font-size: 0.85rem; font-weight: 700; border-radius: 9999px;">
+          🔄 선수 교체
+        </button>
+        <button id="btn-restart-stage" class="btn-icon" title="현재 스테이지 다시 시작" style="font-size: 0.95rem;">🔄</button>
+        <button id="btn-skip-stage" class="btn-icon" title="다음 스테이지로 건너뛰기" style="font-size: 0.95rem;">⏩</button>
+      </div>
+
       <div id="header-room-chip" class="room-chip hidden" title="클릭하여 방 코드 복사">
         <span>방 코드:</span>
         <strong id="header-room-code">------</strong>
@@ -111,11 +120,57 @@
       </div>
 
       <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+        <!-- 선생님(방장) 전용: 50개 스테이지 & 선수 선발/교체 설정 카드 -->
+        <div id="host-stage-settings" class="host-settings-card hidden">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <strong style="font-size: 1rem; color: #1e293b;">🎯 50개 스테이지 & 출전 선수 설정</strong>
+            <button id="btn-random-stage" class="btn btn-secondary" style="width: auto; padding: 6px 14px; font-size: 0.85rem; border-color: #6366f1; color: #4f46e5; font-weight: 800;">
+              🎲 랜덤 스테이지 뽑기!
+            </button>
+          </div>
+
+          <!-- A. 스테이지 및 난이도 선택 -->
+          <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+            <div style="flex: 3; min-width: 240px;">
+              <label for="select-start-stage" class="input-label">선택된 스테이지 (총 50개)</label>
+              <select id="select-start-stage" class="text-input" style="padding: 8px 10px; font-weight: 700; font-size: 0.9rem;">
+                <!-- 50개 스테이지가 카테고리별로 동적 주입됨 -->
+              </select>
+            </div>
+
+            <div style="flex: 1; min-width: 120px;">
+              <label for="select-difficulty" class="input-label">난이도</label>
+              <select id="select-difficulty" class="text-input" style="padding: 8px 10px; font-weight: 700; font-size: 0.9rem;">
+                <option value="EASY">🌱 쉬움</option>
+                <option value="NORMAL" selected>⚡ 보통</option>
+                <option value="HARD">🔥 매운맛</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- B. 출전 방식 선택 (전원 동시 vs 대표 선수 선발) -->
+          <div style="background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <span style="font-size: 0.85rem; font-weight: 700; color: #334155;">출전 방식:</span>
+              <label style="margin-left: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+                <input type="radio" name="play-mode" id="mode-all-players" value="ALL" checked> 🌟 전원 출전
+              </label>
+              <label style="margin-left: 12px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+                <input type="radio" name="play-mode" id="mode-select-players" value="SELECT"> 🎯 대표 선수 선발 (<span id="text-req-count">2</span>명)
+              </label>
+            </div>
+
+            <button id="btn-auto-pick-players" class="btn btn-secondary hidden" style="width: auto; padding: 4px 10px; font-size: 0.8rem; font-weight: 700;">
+              🎲 선수 랜덤 추첨
+            </button>
+          </div>
+        </div>
+
         <button id="btn-start-game" class="btn btn-success hidden">
-          🚀 전원 입장 완료 · 게임 시작하기
+          🚀 전원 입장 완료 · 선택한 스테이지 시작하기
         </button>
         <p id="guest-waiting-text" class="lobby-subtitle hidden" style="margin-bottom: 0;">
-          선생님(방장)이 게임을 시작하기를 기다리고 있습니다...
+          선생님(방장)이 스테이지를 설정하고 시작하기를 기다리고 있습니다...
         </p>
       </div>
     </div>
@@ -147,6 +202,23 @@
         <button id="btn-pad-jump" class="pad-btn-jump-huge">JUMP</button>
         <div class="pad-guide-label">점프 (위로 올라타기)</div>
       </div>
+    </div>
+
+    <!-- 5. 모바일 전용: [벤치 관전 및 실시간 응원 모드] (대표 선수가 아닐 때) -->
+    <div id="screen-spectator" class="spectator-overlay hidden">
+      <div style="font-size: 3rem; margin-bottom: 12px;">👀 📢</div>
+      <h2 style="font-size: 1.5rem; margin-bottom: 8px;">우리 반 대표팀이 도전 중입니다!</h2>
+      <p style="font-size: 0.95rem; color: #cbd5e1; max-width: 320px;">
+        교실 대형 화면을 지켜보며 응원 버튼을 마구 눌러 힘을 보태주세요!
+      </p>
+
+      <div class="cheer-btn-group">
+        <button class="btn-cheer" data-emoji="👏">👏</button>
+        <button class="btn-cheer" data-emoji="🔥">🔥</button>
+        <button class="btn-cheer" data-emoji="🎉">🎉</button>
+        <button class="btn-cheer" data-emoji="🚀">🚀</button>
+      </div>
+      <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 16px;">선생님이 언제든 선수 교체로 나를 투입할 수 있습니다!</div>
     </div>
 
   </div>

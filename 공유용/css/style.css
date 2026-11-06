@@ -139,10 +139,18 @@ body {
   margin-bottom: 8px;
 }
 
-.lobby-subtitle {
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  margin-bottom: 24px;
+/* 방장용 스테이지 및 난이도 설정 카드 */
+.host-settings-card {
+  background: #f1f5f9;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  text-align: left;
+}
+
+.host-settings-card select {
+  background-color: #ffffff;
+  cursor: pointer;
 }
 
 /* QR 스캔 학생 초대 박스 */
@@ -653,6 +661,84 @@ body {
   font-weight: 700;
   color: #64748b;
   pointer-events: none;
+}
+
+/* 출전/벤치 상태 카드 스타일 */
+.player-card.is-selected {
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+
+.player-card.is-bench {
+  opacity: 0.65;
+  filter: grayscale(0.2);
+}
+
+.player-badge-active {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: #10b981;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+}
+
+.player-badge-bench {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: #94a3b8;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+}
+
+/* 벤치 관전 및 응원 오버레이 */
+.spectator-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.92);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 48;
+  padding: 20px;
+  text-align: center;
+}
+
+.cheer-btn-group {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.btn-cheer {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.btn-cheer:active {
+  transform: scale(0.85);
+  background: rgba(255, 255, 255, 0.35);
 }
 
 /* 화면 가시성 제어 */

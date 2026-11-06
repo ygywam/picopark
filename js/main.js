@@ -1,4 +1,4 @@
-// 피코파크 웹 멀티플레이어 - 메인 애플리케이션 엔트리
+// 피코파크 웹 멀티플레이어 - 메인 애플리케이션 (50개 스테이지 & 선수 선발/교체 시스템 탑재)
 
 import { network } from "./network.js";
 import { input } from "./input.js";
@@ -6,7 +6,7 @@ import { sound } from "./audio.js";
 import { PlayerRenderer } from "./player.js";
 import { PhysicsEngine } from "./physics.js";
 import { GimmickManager } from "./gimmicks.js";
-import { getStageData, TOTAL_STAGES } from "./stages.js";
+import { getStageData, getAllStageSummaries, STAGE_CATEGORIES, TOTAL_STAGES } from "./stages.js";
 
 class PicoParkApp {
   constructor() {
@@ -14,21 +14,78 @@ class PicoParkApp {
     this.ctx = this.canvas.getContext("2d");
     
     this.currentStageIndex = 0;
+    this.currentDifficulty = "NORMAL";
     this.gimmickManager = new GimmickManager();
     this.currentStage = null;
 
     this.gameState = "LOBBY"; // LOBBY, ROOM, PLAYING, CLEARED, ALL_CLEARED
     this.clearTimer = 0;
     
-    // 모바일 조작 모드: 'GAMEPAD' (패드 전용 · 교실 화면 보기) | 'SCREEN' (내 폰 화면 보기)
+    // 출전 선수 관리: Set<playerId> (비어있으면 전원 출전)
+    this.playMode = "ALL"; // "ALL" | "SELECT"
+    this.selectedPlayerIds = new Set();
+    this.activePlayerIds = new Set();
+
+    // 부유하는 응원 이모지 파티클
+    this.cheerParticles = [];
+
+    // 모바일 조작 모드: 'GAMEPAD' | 'SCREEN'
     this.mobilePlayMode = "GAMEPAD";
     this.isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
     this.isInvitedViaQR = false;
 
     this.initDOM();
+    this.populate50StagesDropdown();
     this.initNetworkCallbacks();
     this.checkUrlRoomParam();
     this.initOrientationHandler();
+  }
+
+  // 50개 스테이지를 카테고리별 optgroup으로 드롭다운에 채움
+  populate50StagesDropdown() {
+    const select = document.getElementById("select-start-stage");
+    if (!select) return;
+    select.innerHTML = "";
+
+    const summaries = getAllStageSummaries();
+    
+    STAGE_CATEGORIES.forEach(cat => {
+      const group = document.createElement("optgroup");
+      group.label = cat.title;
+
+      const items = summaries.filter(s => {
+        if (cat.id === "cat-2p") return s.index >= 0 && s.index < 10;
+        if (cat.id === "cat-3p") return s.index >= 10 && s.index < 20;
+        if (cat.id === "cat-4p") return s.index >= 20 && s.index < 30;
+        if (cat.id === "cat-group") return s.index >= 30 && s.index < 40;
+        return s.index >= 40 && s.index < 50;
+      });
+
+      items.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item.index;
+        const ropeTag = item.ropeEnabled ? " 🪢[밧줄]" : "";
+        opt.textContent = `[${item.requiredPlayers}인] ${item.name}${ropeTag}`;
+        if (item.index === 3) opt.selected = true; // 기본 4단계 밧줄 번지
+        group.appendChild(opt);
+      });
+
+      select.appendChild(group);
+    });
+
+    this.updateRequiredCountLabel();
+  }
+
+  // 현재 선택된 스테이지의 필요 인원 라벨 갱신
+  updateRequiredCountLabel() {
+    const select = document.getElementById("select-start-stage");
+    const countSpan = document.getElementById("text-req-count");
+    if (!select || !countSpan) return;
+
+    const summaries = getAllStageSummaries();
+    const curIdx = parseInt(select.value, 10) || 0;
+    const stageInfo = summaries[curIdx] || summaries[0];
+    countSpan.textContent = stageInfo.requiredPlayers;
   }
 
   // DOM 요소 및 이벤트 리스너 바인딩
@@ -37,6 +94,7 @@ class PicoParkApp {
     this.screenRoom = document.getElementById("screen-room");
     this.screenGame = document.getElementById("screen-game");
     this.screenGamepad = document.getElementById("screen-gamepad");
+    this.screenSpectator = document.getElementById("screen-spectator");
 
     this.inputNickname = document.getElementById("input-nickname");
     this.inputRoomCode = document.getElementById("input-room-code");
@@ -44,6 +102,21 @@ class PicoParkApp {
     this.btnJoinRoom = document.getElementById("btn-join-room");
     this.btnStartGame = document.getElementById("btn-start-game");
     this.guestWaitingText = document.getElementById("guest-waiting-text");
+
+    // 방장 50개 스테이지 & 선수 선발 제어
+    this.hostStageSettings = document.getElementById("host-stage-settings");
+    this.selectStartStage = document.getElementById("select-start-stage");
+    this.selectDifficulty = document.getElementById("select-difficulty");
+    this.btnRandomStage = document.getElementById("btn-random-stage");
+    this.modeAllPlayers = document.getElementById("mode-all-players");
+    this.modeSelectPlayers = document.getElementById("mode-select-players");
+    this.btnAutoPickPlayers = document.getElementById("btn-auto-pick-players");
+
+    // 인게임 상단 방장 제어 툴
+    this.hostGameControls = document.getElementById("host-game-controls");
+    this.btnChangePlayers = document.getElementById("btn-change-players");
+    this.btnRestartStage = document.getElementById("btn-restart-stage");
+    this.btnSkipStage = document.getElementById("btn-skip-stage");
 
     // QR 전용 분기 요소
     this.lobbyNormalActions = document.getElementById("lobby-normal-actions");
@@ -64,21 +137,64 @@ class PicoParkApp {
     this.btnSoundToggle = document.getElementById("btn-sound-toggle");
     this.toastBox = document.getElementById("toast-box");
 
-    // 모바일 듀얼 모드 토글
+    // 모바일 모드 토글
     this.mobileModeBar = document.getElementById("mobile-mode-bar");
     this.btnModeGamepad = document.getElementById("btn-mode-gamepad");
     this.btnModeScreen = document.getElementById("btn-mode-screen");
     this.mobileControls = document.getElementById("mobile-controls");
 
-    this.btnModeGamepad.addEventListener("click", () => {
-      this.setMobilePlayMode("GAMEPAD");
+    this.btnModeGamepad.addEventListener("click", () => this.setMobilePlayMode("GAMEPAD"));
+    this.btnModeScreen.addEventListener("click", () => this.setMobilePlayMode("SCREEN"));
+
+    // 스테이지 드롭다운 변경 시
+    this.selectStartStage.addEventListener("change", () => {
+      this.updateRequiredCountLabel();
+      if (this.playMode === "SELECT") {
+        this.autoPickPlayers();
+      }
     });
 
-    this.btnModeScreen.addEventListener("click", () => {
-      this.setMobilePlayMode("SCREEN");
+    // 🎲 럭키 랜덤 스테이지 뽑기 버튼
+    this.btnRandomStage.addEventListener("click", () => {
+      const summaries = getAllStageSummaries();
+      const pCount = Math.max(1, network.players.size);
+      
+      // 현재 인원수로 도전 가능한 적합 스테이지 후보 필터링
+      let candidates = summaries.filter(s => s.requiredPlayers <= pCount);
+      if (candidates.length === 0) candidates = summaries;
+
+      const picked = candidates[Math.floor(Math.random() * candidates.length)];
+      this.selectStartStage.value = picked.index;
+      this.updateRequiredCountLabel();
+
+      if (this.playMode === "SELECT") {
+        this.autoPickPlayers();
+      }
+      this.showToast(`🎲 랜덤 당첨: ${picked.name}! (필요: ${picked.requiredPlayers}명)`);
     });
 
-    // 방 만들기 클릭 (교사용)
+    // 출전 방식 라디오 토글
+    const handleModeChange = () => {
+      this.playMode = this.modeSelectPlayers.checked ? "SELECT" : "ALL";
+      if (this.playMode === "SELECT") {
+        this.btnAutoPickPlayers.classList.remove("hidden");
+        this.autoPickPlayers();
+      } else {
+        this.btnAutoPickPlayers.classList.add("hidden");
+        this.selectedPlayerIds.clear();
+        this.renderLobbyPlayers(Array.from(network.players.values()));
+      }
+    };
+    this.modeAllPlayers.addEventListener("change", handleModeChange);
+    this.modeSelectPlayers.addEventListener("change", handleModeChange);
+
+    // 대표 선수 랜덤 추첨 버튼
+    this.btnAutoPickPlayers.addEventListener("click", () => {
+      this.autoPickPlayers();
+      this.showToast("🎲 대표 선수가 무작위로 추첨되었습니다!");
+    });
+
+    // 방 만들기 클릭
     this.btnCreateRoom.addEventListener("click", async () => {
       const nickname = this.inputNickname.value.trim() || "선생님";
       this.btnCreateRoom.disabled = true;
@@ -93,19 +209,15 @@ class PicoParkApp {
       }
     });
 
-    // 방 참가하기 클릭 (일반 입력)
+    // 방 참가하기
     this.btnJoinRoom.addEventListener("click", () => {
-      const roomCode = this.inputRoomCode.value.trim().toUpperCase();
-      this.doJoinRoom(roomCode, this.btnJoinRoom);
+      this.doJoinRoom(this.inputRoomCode.value.trim().toUpperCase(), this.btnJoinRoom);
     });
-
-    // 방 참가하기 클릭 (QR 학생 전용 버튼)
     this.btnQrJoinRoom.addEventListener("click", () => {
-      const roomCode = this.invitedRoomCode;
-      this.doJoinRoom(roomCode, this.btnQrJoinRoom);
+      this.doJoinRoom(this.invitedRoomCode, this.btnQrJoinRoom);
     });
 
-    // 방 코드 클릭 시 복사
+    // 초대 코드 복사
     const copyRoomCode = () => {
       if (!network.roomCode) return;
       const shareUrl = `${window.location.origin}${window.location.pathname}?room=${network.roomCode}`;
@@ -123,9 +235,116 @@ class PicoParkApp {
       this.showToast(isMuted ? "음소거 활성화" : "소리 켜짐");
     });
 
-    // 게임 시작 버튼 (교사용)
+    // 게임 시작 버튼
     this.btnStartGame.addEventListener("click", () => {
-      network.startGame();
+      const stageIdx = parseInt(this.selectStartStage.value, 10) || 0;
+      const difficulty = this.selectDifficulty.value || "NORMAL";
+      
+      const activeIds = this.playMode === "SELECT" 
+        ? Array.from(this.selectedPlayerIds) 
+        : Array.from(network.players.keys());
+
+      network.startGame(stageIdx, difficulty, activeIds);
+    });
+
+    // 🔄 선수 교체(체인지) 버튼
+    this.btnChangePlayers.addEventListener("click", () => {
+      if (!network.isHost) return;
+      this.rotateBenchPlayers();
+    });
+
+    // 인게임 재시작 및 스킵
+    this.btnRestartStage.addEventListener("click", () => {
+      if (network.isHost) {
+        this.loadStage(this.currentStageIndex, this.currentDifficulty);
+        this.showToast("스테이지를 다시 시작합니다!");
+      }
+    });
+    this.btnSkipStage.addEventListener("click", () => {
+      if (network.isHost) {
+        this.loadStage(this.currentStageIndex + 1, this.currentDifficulty);
+        this.showToast("다음 스테이지로 이동했습니다!");
+      }
+    });
+
+    // 벤치 응원 버튼들 바인딩
+    document.querySelectorAll(".btn-cheer").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const emoji = btn.getAttribute("data-emoji") || "👏";
+        network.sendCheer(emoji);
+        btn.classList.add("pulse");
+        setTimeout(() => btn.classList.remove("pulse"), 200);
+      });
+    });
+
+    // 응원 이모지 수신 리스너 (캔버스에 띄움)
+    network.onCheerReceived = (emoji, nickname) => {
+      this.spawnCheerParticle(emoji, nickname);
+    };
+  }
+
+  // 대표 선수 자동 추첨 (필요 인원수만큼)
+  autoPickPlayers() {
+    const allIds = Array.from(network.players.keys());
+    const summaries = getAllStageSummaries();
+    const curIdx = parseInt(this.selectStartStage.value, 10) || 0;
+    const req = summaries[curIdx] ? summaries[curIdx].requiredPlayers : 2;
+
+    this.selectedPlayerIds.clear();
+    // 셔플 후 앞에서부터 req개 선발
+    const shuffled = [...allIds].sort(() => Math.random() - 0.5);
+    shuffled.slice(0, Math.min(req, allIds.length)).forEach(id => {
+      this.selectedPlayerIds.add(id);
+    });
+
+    this.renderLobbyPlayers(Array.from(network.players.values()));
+  }
+
+  // 🔄 벤치 학생과 출전 선수 바통 터치 (교체)
+  rotateBenchPlayers() {
+    const allIds = Array.from(network.players.keys());
+    if (allIds.length <= this.activePlayerIds.size) {
+      this.showToast("대기 중인 벤치 학생이 없습니다 (전원 출전 중)");
+      return;
+    }
+
+    const summaries = getAllStageSummaries();
+    const stageInfo = summaries[this.currentStageIndex] || { requiredPlayers: 2 };
+    const req = stageInfo.requiredPlayers;
+
+    // 현재 출전하지 않고 있는 벤치 플레이어들 찾기
+    const benchIds = allIds.filter(id => !this.activePlayerIds.has(id));
+    const newActives = new Set();
+
+    // 벤치 학생들을 우선 선발
+    benchIds.slice(0, req).forEach(id => newActives.add(id));
+
+    // 그래도 자리가 남으면 기존 선수 중 일부 유지
+    if (newActives.size < req) {
+      allIds.forEach(id => {
+        if (newActives.size < req) newActives.add(id);
+      });
+    }
+
+    this.activePlayerIds = newActives;
+    this.selectedPlayerIds = new Set(newActives);
+
+    // 새 출전 명단으로 스테이지 재시작 브로드캐스트
+    network.startGame(this.currentStageIndex, this.currentDifficulty, Array.from(newActives));
+    this.showToast("🔄 선수 교체 완료! 새로운 대표팀이 출전합니다!");
+  }
+
+  // 응원 이모지 생성
+  spawnCheerParticle(emoji, nickname) {
+    this.cheerParticles.push({
+      emoji: emoji,
+      name: nickname,
+      x: 100 + Math.random() * (this.canvas.width - 200),
+      y: this.canvas.height - 40,
+      vy: -3.5 - Math.random() * 2,
+      vx: (Math.random() - 0.5) * 1.5,
+      alpha: 1.0,
+      scale: 1.0 + Math.random() * 0.4
     });
   }
 
@@ -159,7 +378,6 @@ class PicoParkApp {
       this.isInvitedViaQR = true;
       this.invitedRoomCode = roomParam.trim().toUpperCase();
 
-      // 학생용 전용 로비 UI로 전환 (교사용 새 방 만들기 버튼 원천 차단)
       this.lobbyNormalActions.classList.add("hidden");
       this.lobbyQrActions.classList.remove("hidden");
       this.qrInvitedBadge.classList.remove("hidden");
@@ -167,26 +385,22 @@ class PicoParkApp {
       this.lobbyDescText.textContent = "선생님 방에 연결되었습니다! 닉네임을 적고 입장하세요.";
 
       this.inputNickname.placeholder = "내 이름 입력 (예: 김철수)";
-      setTimeout(() => {
-        this.inputNickname.focus();
-      }, 400);
+      setTimeout(() => this.inputNickname.focus(), 400);
 
       this.showToast("QR 코드로 초대되었습니다! 이름을 적고 입장하세요.");
     }
   }
 
-  // 가로/세로 화면 회전 안내 핸들러 (로비에서는 안내를 띄우지 않고, 입장 후에만 띄움)
+  // 가로/세로 화면 회전 안내 핸들러
   initOrientationHandler() {
     this.landscapeWarning = document.getElementById("landscape-warning");
     
     this.checkOrientation = () => {
-      // 로비에서는 닉네임 입력을 위해 세로 화면 허용!
       if (this.gameState === "LOBBY") {
         this.landscapeWarning.classList.add("hidden");
         return;
       }
 
-      // 방 입장 후 또는 게임 중일 때만 가로모드 유도
       if (this.isTouchDevice) {
         const isPortrait = window.innerHeight > window.innerWidth;
         if (isPortrait) {
@@ -208,17 +422,29 @@ class PicoParkApp {
     if (mode === "GAMEPAD") {
       this.btnModeGamepad.classList.add("active");
       this.btnModeScreen.classList.remove("active");
-      this.showToast("🎮 패드 전용 모드: 교실 칠판 화면을 보며 조작하세요!");
     } else {
       this.btnModeScreen.classList.add("active");
       this.btnModeGamepad.classList.remove("active");
-      this.showToast("📱 개인 화면 모드: 내 폰 화면을 직접 봅니다.");
     }
     this.applyPlayModeUI();
   }
 
   applyPlayModeUI() {
     if (this.gameState !== "PLAYING") return;
+
+    // 내가 벤치(관전) 플레이어인지 확인
+    const isBench = this.activePlayerIds.size > 0 && !this.activePlayerIds.has(network.myId);
+
+    if (isBench && this.isTouchDevice) {
+      // 벤치 학생은 응원 오버레이 활성화
+      this.screenGame.classList.add("hidden");
+      this.screenGamepad.classList.add("hidden");
+      this.screenSpectator.classList.remove("hidden");
+      this.mobileControls.classList.add("hidden");
+      return;
+    } else {
+      this.screenSpectator.classList.add("hidden");
+    }
 
     if (this.isTouchDevice && this.mobilePlayMode === "GAMEPAD") {
       this.screenGame.classList.add("hidden");
@@ -233,7 +459,7 @@ class PicoParkApp {
     }
   }
 
-  // 방 입장 완료 시 화면 전환 및 QR 코드 생성
+  // 방 입장 완료 시 화면 전환
   onRoomReady(roomCode, isHost) {
     this.gameState = "ROOM";
     this.screenLobby.classList.add("hidden");
@@ -249,21 +475,23 @@ class PicoParkApp {
 
     if (isHost) {
       this.btnStartGame.classList.remove("hidden");
+      this.hostStageSettings.classList.remove("hidden");
+      this.hostGameControls.classList.remove("hidden");
       this.guestWaitingText.classList.add("hidden");
+      this.renderRoomQRCode(roomCode);
     } else {
       this.btnStartGame.classList.add("hidden");
+      this.hostStageSettings.classList.add("hidden");
+      this.hostGameControls.classList.add("hidden");
       this.guestWaitingText.classList.remove("hidden");
+      
+      const qrWrapper = document.querySelector(".qr-box-wrapper");
+      if (qrWrapper) qrWrapper.style.display = "none";
+
       if (this.isTouchDevice) {
         this.mobileModeBar.classList.remove("hidden");
         this.showToast("기기를 가로로 쥐고 게임패드로 조작할 준비를 하세요!");
       }
-    }
-
-    if (isHost) {
-      this.renderRoomQRCode(roomCode);
-    } else {
-      const qrWrapper = document.querySelector(".qr-box-wrapper");
-      if (qrWrapper) qrWrapper.style.display = "none";
     }
   }
 
@@ -288,15 +516,20 @@ class PicoParkApp {
 
   // 네트워크 이벤트 콜백 등록
   initNetworkCallbacks() {
-    // 로비 참가자 목록 갱신
     network.onLobbyUpdate = (players) => {
       this.textPlayerCount.textContent = players.length;
       this.renderLobbyPlayers(players);
     };
 
-    // 게임 시작 신호 수신
     network.onGameStart = (data) => {
-      this.loadStage(data.stage - 1);
+      this.currentDifficulty = data.difficulty || "NORMAL";
+      if (data.activePlayerIds && data.activePlayerIds.length > 0) {
+        this.activePlayerIds = new Set(data.activePlayerIds);
+      } else {
+        this.activePlayerIds = new Set(network.players.keys());
+      }
+
+      this.loadStage(data.stageIndex !== undefined ? data.stageIndex : 0, this.currentDifficulty);
       this.gameState = "PLAYING";
       this.screenRoom.classList.add("hidden");
       this.applyPlayModeUI();
@@ -305,15 +538,17 @@ class PicoParkApp {
       requestAnimationFrame(this.gameLoop.bind(this));
     };
 
-    // 호스트로부터 상태 동기화 수신 (게스트 측)
     network.onStateSync = (data) => {
       if (!network.isHost) {
-        // 플레이어 상태 반영
+        if (data.activePlayerIds) {
+          this.activePlayerIds = new Set(data.activePlayerIds);
+          this.applyPlayModeUI();
+        }
+
         data.players.forEach(remoteP => {
           if (network.players.has(remoteP.id)) {
             const localP = network.players.get(remoteP.id);
             if (remoteP.id === network.myId) {
-              // 내 캐릭터는 로컬 예측을 우선하되 큰 오차 보정
               if (Math.hypot(remoteP.x - localP.x, remoteP.y - localP.y) > 45) {
                 localP.x = remoteP.x;
                 localP.y = remoteP.y;
@@ -330,7 +565,6 @@ class PicoParkApp {
           }
         });
 
-        // 기믹 상태 동기화
         if (data.gimmicks) {
           Object.assign(this.gimmickManager.key, data.gimmicks.key);
           this.gimmickManager.doorUnlocked = data.gimmicks.doorUnlocked;
@@ -361,9 +595,8 @@ class PicoParkApp {
           }
         }
 
-        // 스테이지 전환 동기화
         if (data.stageIndex !== undefined && data.stageIndex !== this.currentStageIndex) {
-          this.loadStage(data.stageIndex);
+          this.loadStage(data.stageIndex, data.difficulty || this.currentDifficulty);
         }
       }
     };
@@ -373,12 +606,38 @@ class PicoParkApp {
     };
   }
 
-  // 대기실 참가자 그리드 렌더링
+  // 대기실 참가자 그리드 렌더링 (출전/벤치 상태 카드 반영)
   renderLobbyPlayers(players) {
     this.lobbyPlayerGrid.innerHTML = "";
     players.forEach(p => {
       const card = document.createElement("div");
-      card.className = "player-card" + (p.id === network.myId ? " is-me" : "");
+      const isSelected = this.playMode === "ALL" || this.selectedPlayerIds.has(p.id);
+
+      card.className = "player-card" + 
+        (p.id === network.myId ? " is-me" : "") +
+        (isSelected ? " is-selected" : " is-bench");
+
+      // 출전/벤치 뱃지
+      if (this.playMode === "SELECT") {
+        const badge = document.createElement("span");
+        badge.className = isSelected ? "player-badge-active" : "player-badge-bench";
+        badge.textContent = isSelected ? "출전" : "벤치";
+        card.appendChild(badge);
+
+        // 방장일 경우 클릭하여 출전 토글 가능
+        if (network.isHost) {
+          card.style.cursor = "pointer";
+          card.title = "클릭하여 출전/벤치 토글";
+          card.addEventListener("click", () => {
+            if (this.selectedPlayerIds.has(p.id)) {
+              this.selectedPlayerIds.delete(p.id);
+            } else {
+              this.selectedPlayerIds.add(p.id);
+            }
+            this.renderLobbyPlayers(players);
+          });
+        }
+      }
 
       const avatar = document.createElement("div");
       avatar.className = "player-avatar";
@@ -402,34 +661,45 @@ class PicoParkApp {
     });
   }
 
-  // 스테이지 로드 (인원수 비례 맞춤형 데이터 생성)
-  loadStage(index) {
+  // 스테이지 로드
+  loadStage(index, difficulty = "NORMAL") {
     this.currentStageIndex = index;
+    this.currentDifficulty = difficulty;
+
     if (this.currentStageIndex >= TOTAL_STAGES) {
       this.gameState = "ALL_CLEARED";
       return;
     }
 
-    const playerCount = network.players.size;
-    // 인원수(1명, 2명, N명)에 완벽하게 맞춘 스테이지 맵 생성!
-    this.currentStage = getStageData(this.currentStageIndex, playerCount);
+    // 출전 인원수 계산
+    const activeCount = this.activePlayerIds.size > 0 
+      ? this.activePlayerIds.size 
+      : Math.max(1, network.players.size);
 
-    // 기믹 초기화
-    this.gimmickManager.initGimmicks(this.currentStage, playerCount);
+    this.currentStage = getStageData(this.currentStageIndex, activeCount, this.currentDifficulty);
+    this.gimmickManager.initGimmicks(this.currentStage, activeCount);
 
-    // 플레이어들 스폰 위치로 리셋
+    // 출전 선수들만 스폰 위치에 배치 (비출전 선수는 화면 밖 대기)
     let offsetIdx = 0;
     network.players.forEach(p => {
+      const isPlayerActive = this.activePlayerIds.size === 0 || this.activePlayerIds.has(p.id);
+
       p.width = 36;
       p.height = 36;
-      p.x = this.currentStage.spawnPoint.x + (offsetIdx * 38);
-      p.y = this.currentStage.spawnPoint.y;
+      if (isPlayerActive) {
+        p.x = this.currentStage.spawnPoint.x + (offsetIdx * 38);
+        p.y = this.currentStage.spawnPoint.y;
+        offsetIdx++;
+      } else {
+        // 벤치 선수는 대기 좌표
+        p.x = -200;
+        p.y = -200;
+      }
       p.vx = 0;
       p.vy = 0;
       p.isGrounded = true;
       p.isStackedAbove = false;
       p.isStackedUnder = false;
-      offsetIdx++;
     });
 
     this.clearTimer = 0;
@@ -450,23 +720,32 @@ class PicoParkApp {
 
     const myPlayer = network.players.get(network.myId);
     const keyInput = input.getState();
-    const playerList = Array.from(network.players.values());
+    
+    // 출전 선수들만 필터링
+    const activePlayerList = Array.from(network.players.values()).filter(p => 
+      this.activePlayerIds.size === 0 || this.activePlayerIds.has(p.id)
+    );
 
-    // 기본 플랫폼 + 스위치로 활성화된 브릿지/밀린 상자 포함
     const allPlatforms = [
       ...this.currentStage.platforms,
       ...this.gimmickManager.getActivePlatforms()
     ];
 
-    // 1. 내 캐릭터 물리 업데이트 (로컬 예측)
-    if (myPlayer) {
+    // 1. 내 캐릭터 물리 업데이트 (내가 출전 선수일 때만 조작)
+    const amIActive = this.activePlayerIds.size === 0 || this.activePlayerIds.has(network.myId);
+    if (myPlayer && amIActive) {
       PhysicsEngine.updatePlayer(myPlayer, allPlatforms, keyInput);
     }
 
-    // 2. [스택킹 핵심] 호스트와 게스트 모두 로컬에서 플레이어 간 머리 위 올라타기 판정 즉시 연산!
-    PhysicsEngine.resolvePlayerStacking(playerList);
+    // 2. 머리 위 스택킹 판정 (출전 선수들끼리)
+    PhysicsEngine.resolvePlayerStacking(activePlayerList);
 
-    // 3. 내 입력 및 위치 전송
+    // 3. 밧줄(로프) 물리 연산
+    if (this.currentStage && this.currentStage.ropeEnabled && activePlayerList.length >= 2) {
+      PhysicsEngine.resolveRopePhysics(activePlayerList, { restLength: 150 });
+    }
+
+    // 4. 내 입력 및 위치 전송
     if (myPlayer) {
       network.sendLocalInput({
         x: myPlayer.x,
@@ -480,23 +759,25 @@ class PicoParkApp {
       });
     }
 
-    // 4. 호스트 권위 물리 연산 및 기믹 동기화
+    // 5. 호스트 권위 물리 연산 및 기믹 동기화
     if (network.isHost) {
-      // 기믹(스위치, 열쇠, 밀기 상자, 문) 판정
-      this.gimmickManager.update(network.players, allPlatforms, sound);
+      // 출전 선수들 기준으로 기믹 업데이트
+      const activeMap = new Map();
+      activePlayerList.forEach(p => activeMap.set(p.id, p));
+      this.gimmickManager.update(activeMap, allPlatforms, sound);
 
-      // 스테이지 클리어 처리
       if (this.gimmickManager.stageCleared) {
         this.clearTimer++;
-        if (this.clearTimer > 90) { // 1.5초 후 다음 스테이지로
-          this.loadStage(this.currentStageIndex + 1);
+        if (this.clearTimer > 90) {
+          this.loadStage(this.currentStageIndex + 1, this.currentDifficulty);
         }
       }
 
-      // 게스트들에게 전체 상태 브로드캐스트
       network.broadcastGameState({
         stageIndex: this.currentStageIndex,
-        players: playerList.map(p => ({
+        difficulty: this.currentDifficulty,
+        activePlayerIds: Array.from(this.activePlayerIds),
+        players: activePlayerList.map(p => ({
           id: p.id,
           x: p.x,
           y: p.y,
@@ -516,6 +797,22 @@ class PicoParkApp {
         }
       });
     }
+
+    // 응원 이모지 파티클 애니메이션
+    this.updateCheerParticles();
+  }
+
+  // 응원 파티클 업데이트
+  updateCheerParticles() {
+    for (let i = this.cheerParticles.length - 1; i >= 0; i--) {
+      const p = this.cheerParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.alpha -= 0.015;
+      if (p.alpha <= 0) {
+        this.cheerParticles.splice(i, 1);
+      }
+    }
   }
 
   // 화면 렌더링
@@ -530,7 +827,7 @@ class PicoParkApp {
 
     if (!this.currentStage) return;
 
-    // 1. 부드러운 그리드 배경 (라이트 테마)
+    // 1. 그리드 배경
     ctx.fillStyle = "#f8fafc";
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -561,16 +858,28 @@ class PicoParkApp {
     // 3. 기믹 오브젝트 그리기
     this.gimmickManager.draw(ctx);
 
-    // 4. 플레이어 캐릭터들 그리기 (아래에서부터 위 순서로 그려서 스택킹 표현)
-    const sortedPlayers = Array.from(network.players.values()).sort((a, b) => a.y - b.y);
+    // 4. 밧줄 그리기 (출전 선수들끼리)
+    const activePlayerList = Array.from(network.players.values()).filter(p => 
+      this.activePlayerIds.size === 0 || this.activePlayerIds.has(p.id)
+    );
+
+    if (this.currentStage.ropeEnabled && activePlayerList.length >= 2) {
+      PhysicsEngine.drawRopes(ctx, activePlayerList, 150);
+    }
+
+    // 5. 출전 선수 캐릭터 그리기
+    const sortedPlayers = [...activePlayerList].sort((a, b) => a.y - b.y);
     sortedPlayers.forEach(p => {
       PlayerRenderer.draw(ctx, p, p.id === network.myId);
     });
 
-    // 5. 상단 정보 HUD 렌더링
-    this.drawHUD(ctx);
+    // 6. 응원 이모지 파티클 그리기
+    this.drawCheerParticles(ctx);
 
-    // 6. 스테이지 클리어 연출
+    // 7. 상단 HUD 렌더링
+    this.drawHUD(ctx, activePlayerList.length);
+
+    // 8. 스테이지 클리어 연출
     if (this.gimmickManager.stageCleared) {
       ctx.fillStyle = "rgba(16, 185, 129, 0.25)";
       ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -586,30 +895,44 @@ class PicoParkApp {
     }
   }
 
+  // 응원 이모지 렌더링
+  drawCheerParticles(ctx) {
+    this.cheerParticles.forEach(p => {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.alpha);
+      ctx.font = `${28 * p.scale}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillText(p.emoji, p.x, p.y);
+
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillStyle = "#4f46e5";
+      ctx.fillText(p.name, p.x, p.y + 16);
+      ctx.restore();
+    });
+  }
+
   // 상단 HUD 렌더링
-  drawHUD(ctx) {
-    // 스테이지 이름 및 미션 설명
+  drawHUD(ctx, activeCount) {
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 18px sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText(this.currentStage.name, 24, 38);
+    const diffTag = this.currentDifficulty === "EASY" ? " [쉬움]" : this.currentDifficulty === "HARD" ? " [매운맛]" : "";
+    const reqTag = `[${this.currentStage.requiredPlayers}인 추천]`;
+    ctx.fillText(`${reqTag} ${this.currentStage.name}${diffTag}`, 24, 38);
 
     ctx.font = "14px sans-serif";
     ctx.fillStyle = "#64748b";
     ctx.fillText(this.currentStage.description, 24, 62);
 
-    // 참여 인원 및 문 입장 현황
     const entered = this.gimmickManager.door.enteredPlayers ? this.gimmickManager.door.enteredPlayers.size : 0;
-    const total = network.players.size;
     ctx.textAlign = "right";
     ctx.font = "bold 16px sans-serif";
     ctx.fillStyle = this.gimmickManager.doorUnlocked ? "#10b981" : "#475569";
-    ctx.fillText(`🚪 문 탈출 현황: ${entered} / ${total}명`, this.canvas.width - 24, 38);
+    ctx.fillText(`🚪 탈출 현황: ${entered} / ${activeCount}명 (총 접속 ${network.players.size}명)`, this.canvas.width - 24, 38);
 
-    // 키보드 조작 안내 가이드
     ctx.font = "13px sans-serif";
     ctx.fillStyle = "#94a3b8";
-    ctx.fillText("조작: A/D 또는 방향키 (이동) · Space / W (점프)", this.canvas.width - 24, 62);
+    ctx.fillText("A/D (이동) · Space (점프) · 벤치는 스마트폰으로 응원!", this.canvas.width - 24, 62);
   }
 
   // 전 스테이지 완료 엔딩 화면
@@ -620,15 +943,15 @@ class PicoParkApp {
     ctx.fillStyle = "#4f46e5";
     ctx.font = "bold 52px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("🏆 ALL STAGES CLEARED! 🏆", this.canvas.width / 2, this.canvas.height / 2 - 40);
+    ctx.fillText("🏆 ALL 50 STAGES CLEARED! 🏆", this.canvas.width / 2, this.canvas.height / 2 - 40);
 
     ctx.fillStyle = "#1e293b";
     ctx.font = "bold 24px sans-serif";
-    ctx.fillText("모든 팀원이 완벽한 팀워크로 피코파크 미션을 완수했습니다!", this.canvas.width / 2, this.canvas.height / 2 + 20);
+    ctx.fillText("우리 반 모두가 50개 스테이지의 대기록을 완성했습니다!", this.canvas.width / 2, this.canvas.height / 2 + 20);
 
     ctx.fillStyle = "#64748b";
     ctx.font = "16px sans-serif";
-    ctx.fillText("함께 플레이해 주셔서 감사합니다.", this.canvas.width / 2, this.canvas.height / 2 + 65);
+    ctx.fillText("최고의 팀워크를 보여준 학생들에게 박수를 보냅니다.", this.canvas.width / 2, this.canvas.height / 2 + 65);
   }
 
   // 토스트 메시지 출력
