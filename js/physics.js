@@ -2,7 +2,7 @@
 
 export const GRAVITY = 0.65;
 export const MOVE_SPEED = 4.5;
-export const JUMP_FORCE = -12.5;
+export const JUMP_FORCE = -13.5; // 기존 -12.5에서 시원하고 경쾌하게 상향 (-13.5 = 약 140px 도약)
 export const PLAYER_SIZE = 36;
 
 export class PhysicsEngine {

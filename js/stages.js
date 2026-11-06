@@ -7,19 +7,21 @@ export function getStageData(stageIndex, playerCount = 1) {
     // Stage 1: 인간 탑 쌓기
     case 0: {
       if (pCount === 1) {
-        // [1인 플레이 튜토리얼 모드]
+        // [1인 플레이 튜토리얼 모드 - 점프가 넉넉하게 닿도록 계단식 디딤돌 배치]
         return {
-          name: "STAGE 1 · 1인 튜토리얼 점프",
-          description: "점프하여 공중의 열쇠를 획득하고 문으로 탈출하세요!",
+          name: "STAGE 1 · 1인 점프 튜토리얼",
+          description: "계단 디딤돌을 밟고 점프하여 열쇠를 획득한 후 문으로 가세요!",
           spawnPoint: { x: 120, y: 604 },
           platforms: [
-            // 바닥
+            // 바닥 (y: 640)
             { x: 0, y: 640, width: 1280, height: 80 },
-            // 중간 발판
-            { x: 480, y: 520, width: 160, height: 24 }
+            // 1단계 디딤돌 (y: 550, 바닥에서 90px - 가볍게 올라감)
+            { x: 380, y: 550, width: 140, height: 24 },
+            // 2단계 디딤돌 (y: 460, 1단계에서 90px)
+            { x: 560, y: 460, width: 140, height: 24 }
           ],
-          key: { x: 540, y: 440 }, // 발판을 밟거나 점프하면 닿는 높이
-          door: { x: 1100, y: 576 }, // 바닥에 위치
+          key: { x: 610, y: 390 }, // 2단계 디딤돌 위에서 가볍게 점프하면 획득
+          door: { x: 1100, y: 576 }, // 바닥에 위치하여 즉시 탈출
           switches: [],
           bridges: [],
           pushBlocks: []
@@ -31,22 +33,21 @@ export function getStageData(stageIndex, playerCount = 1) {
           description: "친구 머리 위에 올라타 열쇠를 얻고, 스위치를 눌러 함께 절벽을 오르세요!",
           spawnPoint: { x: 120, y: 604 },
           platforms: [
-            // 바닥
+            // 바닥 (y: 640)
             { x: 0, y: 640, width: 1280, height: 80 },
-            // 우측 높은 절벽 (문이 있는 곳)
-            { x: 920, y: 450, width: 360, height: 190 }
+            // 우측 높은 절벽 (y: 480, 바닥에서 160px - 혼자선 못 가고 친구 머리 위에 타면 쏙 올라감)
+            { x: 920, y: 480, width: 360, height: 160 }
           ],
-          // 혼자 점프로는 절대 못 닿고, 친구 머리 위에 올라타서 점프해야 닿는 2단 높이
-          key: { x: 500, y: 430 },
-          door: { x: 1120, y: 386 },
-          // 절벽 위 스위치: 1명이 머리를 밟고 먼저 절벽에 올라가 이 스위치를 밟아주면,
-          // 아래에 남아있는 친구를 위한 도우미 계단(Bridge)이 활성화됨!
+          // 친구 머리 위에 올라타서 점프하면 딱 닿는 2단 높이
+          key: { x: 500, y: 440 },
+          door: { x: 1120, y: 416 },
+          // 절벽 위 스위치: 1명이 머리를 밟고 먼저 올라가 밟아주면 도우미 발판이 내려옴
           switches: [
-            { x: 960, y: 440, targetId: "sw-stairs", width: 50 }
+            { x: 970, y: 470, targetId: "sw-stairs", width: 50 }
           ],
           bridges: [
-            // 아래 친구가 올라올 수 있는 중간 도우미 디딤돌
-            { x: 800, y: 540, width: 100, height: 20, triggerSwitchId: "sw-stairs" }
+            // 아래 친구가 쉽게 올라올 수 있는 중간 도우미 디딤돌 (y: 560, 바닥에서 80px)
+            { x: 800, y: 560, width: 100, height: 20, triggerSwitchId: "sw-stairs" }
           ],
           pushBlocks: []
         };
@@ -58,16 +59,15 @@ export function getStageData(stageIndex, playerCount = 1) {
           spawnPoint: { x: 120, y: 604 },
           platforms: [
             { x: 0, y: 640, width: 1280, height: 80 },
-            { x: 900, y: 420, width: 380, height: 220 }
+            { x: 900, y: 460, width: 380, height: 180 }
           ],
-          // 3단 이상 탑을 쌓아야 닿는 높은 공중
-          key: { x: 500, y: 340 },
-          door: { x: 1100, y: 356 },
+          key: { x: 500, y: 360 }, // 다단 탑 높이
+          door: { x: 1100, y: 396 },
           switches: [
-            { x: 960, y: 410, targetId: "sw-stairs-multi", width: 60 }
+            { x: 960, y: 450, targetId: "sw-stairs-multi", width: 60 }
           ],
           bridges: [
-            { x: 760, y: 530, width: 120, height: 20, triggerSwitchId: "sw-stairs-multi" }
+            { x: 760, y: 550, width: 120, height: 20, triggerSwitchId: "sw-stairs-multi" }
           ],
           pushBlocks: []
         };
@@ -89,8 +89,8 @@ export function getStageData(stageIndex, playerCount = 1) {
           { x: 0, y: 640, width: 440, height: 80 },
           // 오른쪽 도착 바닥
           { x: 740, y: 640, width: 540, height: 80 },
-          // 중앙 상단 열쇠 받침대
-          { x: 540, y: 460, width: 100, height: 20 }
+          // 중앙 상단 열쇠 받침대 (바닥에서 130px 높이로 점프 시 여유 있게 착지)
+          { x: 540, y: 510, width: 120, height: 20 }
         ],
         bridges: [
           // 낭떠러지 위 다리
@@ -99,13 +99,13 @@ export function getStageData(stageIndex, playerCount = 1) {
         switches: [
           // 시작 구역 스위치
           { x: 240, y: 630, targetId: "sw-bridge", width: 54 },
-          // 건너간 후 밟을 수 있는 반대편 스위치 (밟으면 다리 유지)
+          // 반대편 스위치
           { x: 770, y: 630, targetId: "sw-bridge", width: 54 }
         ],
         pushBlocks: [
           { x: 860, y: 568, width: 72, height: 72, requiredPushers: pushReq }
         ],
-        key: { x: 576, y: 420 },
+        key: { x: 586, y: 460 },
         door: { x: 1140, y: 576 }
       };
     }
@@ -120,22 +120,26 @@ export function getStageData(stageIndex, playerCount = 1) {
         platforms: [
           // 1층 바닥
           { x: 0, y: 640, width: 1280, height: 80 },
-          // 2층 플랫폼
-          { x: 180, y: 480, width: 580, height: 24 },
-          // 3층 플랫폼
-          { x: 560, y: 320, width: 580, height: 24 }
+          // 1층 -> 2층 보조 디딤돌 (y: 560, 바닥에서 80px)
+          { x: 100, y: 560, width: 100, height: 20 },
+          // 2층 플랫폼 (y: 480, 디딤돌에서 80px)
+          { x: 220, y: 480, width: 540, height: 24 },
+          // 2층 -> 3층 보조 디딤돌 (y: 400, 2층에서 80px)
+          { x: 580, y: 400, width: 100, height: 20 },
+          // 3층 플랫폼 (y: 320, 보조 디딤돌에서 80px)
+          { x: 700, y: 320, width: 480, height: 24 }
         ],
         bridges: [
-          { x: 760, y: 480, width: 200, height: 24, triggerSwitchId: "sw-floor3" }
+          { x: 860, y: 480, width: 160, height: 24, triggerSwitchId: "sw-floor3" }
         ],
         switches: [
-          { x: 320, y: 470, targetId: "sw-floor3", width: 54 }
+          { x: 340, y: 470, targetId: "sw-floor3", width: 54 }
         ],
         pushBlocks: [
-          { x: 620, y: 248, width: 72, height: 72, requiredPushers: Math.max(1, Math.floor(pCount * 0.4)) }
+          { x: 760, y: 248, width: 72, height: 72, requiredPushers: Math.max(1, Math.floor(pCount * 0.4)) }
         ],
-        key: { x: 240, y: 420 },
-        door: { x: 1040, y: 256 }
+        key: { x: 260, y: 420 },
+        door: { x: 1100, y: 256 }
       };
     }
   }
