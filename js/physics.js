@@ -179,7 +179,6 @@ export class PhysicsEngine {
       ctx.restore();
     }
   }
-  }
 
   // 플레이어 간 상하 스택킹(머리 위 올라타기) 및 좌우 충돌 연산
   static resolvePlayerStacking(playerList) {
