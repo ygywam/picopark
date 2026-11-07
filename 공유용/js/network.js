@@ -49,6 +49,11 @@ class NetworkManager {
   // 방 만들기 (호스트)
   createRoom(nickname) {
     return new Promise((resolve, reject) => {
+      // 기존 연결 정리
+      if (this.peer && !this.peer.destroyed) {
+        this.peer.destroy();
+      }
+
       this.isHost = true;
       this.myNickname = nickname || "방장";
       this.roomCode = this.generateRoomCode();
@@ -60,7 +65,9 @@ class NetworkManager {
         config: {
           iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:global.stun.twilio.com:3478" }
+            { urls: "stun:stun1.l.google.com:19302" },
+            { urls: "stun:stun2.l.google.com:19302" },
+            { urls: "stun:stun.cloudflare.com:3478" }
           ]
         }
       });
@@ -93,16 +100,16 @@ class NetworkManager {
       });
 
       this.peer.on("error", (err) => {
-        console.error("PeerJS 에러:", err);
+        console.error("PeerJS 호스트 에러:", err);
         if (this.onError) this.onError(err);
         reject(err);
       });
     });
   }
 
-  // 게스트 연결 처리 (호스트 측)
+  // 게스트 연결 처리 (호스트 측 - 즉시/대기 연결 양방향 보장)
   handleGuestConnection(conn) {
-    conn.on("open", () => {
+    const setupGuest = () => {
       // 30인 초과 여부 확인
       if (this.players.size >= 32) {
         conn.send({ type: "error", message: "방 정원(30명)이 가득 찼습니다." });
@@ -117,7 +124,19 @@ class NetworkManager {
       conn.on("close", () => {
         this.removeGuest(conn.peer);
       });
-    });
+
+      conn.on("error", (err) => {
+        console.warn("게스트 연결 경고:", err);
+        this.removeGuest(conn.peer);
+      });
+    };
+
+    // PeerJS 레이스 컨디션 방지: 이미 open 상태인 경우 즉시 리스너 바인딩
+    if (conn.open) {
+      setupGuest();
+    } else {
+      conn.on("open", setupGuest);
+    }
   }
 
   // 게스트로부터 받은 메시지 처리 (호스트 측)
@@ -179,13 +198,28 @@ class NetworkManager {
     }
   }
 
-  // 방 참가하기 (게스트)
+  // 방 참가하기 (게스트 - 연결 보장 및 타임아웃 완비)
   joinRoom(roomCode, nickname) {
     return new Promise((resolve, reject) => {
+      // 기존 연결 정리
+      if (this.peer && !this.peer.destroyed) {
+        this.peer.destroy();
+      }
+
       this.isHost = false;
-      this.roomCode = roomCode.trim().toUpperCase();
+      this.roomCode = (roomCode || "").trim().toUpperCase();
       this.myNickname = nickname || "플레이어";
       const hostPeerId = `pico-${this.roomCode}`;
+
+      let isFinished = false;
+
+      // 12초 연결 타임아웃
+      const timer = setTimeout(() => {
+        if (!isFinished) {
+          isFinished = true;
+          reject(new Error("선생님 방과의 연결 시간이 초과되었습니다. 방 코드를 확인하거나 잠시 후 다시 시도해 주세요."));
+        }
+      }, 12000);
 
       // @ts-ignore
       this.peer = new window.Peer(null, {
@@ -193,37 +227,75 @@ class NetworkManager {
         config: {
           iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:global.stun.twilio.com:3478" }
+            { urls: "stun:stun1.l.google.com:19302" },
+            { urls: "stun:stun2.l.google.com:19302" },
+            { urls: "stun:stun.cloudflare.com:3478" }
           ]
         }
       });
 
       this.peer.on("open", (id) => {
+        if (isFinished) return;
         this.myId = id;
-        // 호스트에게 연결 시도
+
+        // 호스트에게 WebRTC 데이터 연결 시도
         this.hostConnection = this.peer.connect(hostPeerId, { reliable: true });
 
-        this.hostConnection.on("open", () => {
-          // 입장 요청 전송
-          this.hostConnection.send({
-            type: "join_req",
-            nickname: this.myNickname
-          });
-        });
+        const sendJoinReq = () => {
+          if (this.hostConnection && this.hostConnection.open) {
+            this.hostConnection.send({
+              type: "join_req",
+              nickname: this.myNickname
+            });
+          }
+        };
+
+        // 이미 연결이 열려있는 경우 즉시 전송, 아니면 open 이벤트 대기
+        if (this.hostConnection.open) {
+          sendJoinReq();
+        } else {
+          this.hostConnection.on("open", sendJoinReq);
+        }
 
         this.hostConnection.on("data", (data) => {
+          if (!isFinished && data.type === "join_res") {
+            clearTimeout(timer);
+            isFinished = true;
+          }
           this.handleMessageFromHost(data, resolve, reject);
         });
 
+        this.hostConnection.on("error", (err) => {
+          console.error("호스트 데이터채널 에러:", err);
+          if (!isFinished) {
+            clearTimeout(timer);
+            isFinished = true;
+            reject(new Error("방장과의 통신 채널 연결에 실패했습니다."));
+          }
+        });
+
         this.hostConnection.on("close", () => {
-          if (this.onError) this.onError(new Error("방장과의 연결이 끊어졌습니다."));
+          if (!isFinished) {
+            clearTimeout(timer);
+            isFinished = true;
+            reject(new Error("방장과의 연결이 닫혔습니다."));
+          } else {
+            if (this.onError) this.onError(new Error("방장과의 연결이 끊어졌습니다."));
+          }
         });
       });
 
       this.peer.on("error", (err) => {
-        console.error("참가 실패 에러:", err);
-        if (this.onError) this.onError(err);
-        reject(err);
+        console.error("PeerJS 참가 에러:", err);
+        if (!isFinished) {
+          clearTimeout(timer);
+          isFinished = true;
+          let msg = "방에 입장할 수 없습니다.";
+          if (err.type === "peer-unavailable") {
+            msg = "선생님 방(코드: " + this.roomCode + ")을 찾을 수 없습니다. 칠판의 코드를 다시 확인해 주세요.";
+          }
+          reject(new Error(msg));
+        }
       });
     });
   }

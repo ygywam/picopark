@@ -99,11 +99,14 @@ class PicoParkApp {
     countSpan.textContent = stageInfo.requiredPlayers;
   }
 
-  // 인트로 화면 초기화 및 표시 여부 판별
+  // 인트로 화면 초기화 및 표시 여부 판별 (QR 스캔 학생은 직행)
   initIntro() {
     const isHideIntro = localStorage.getItem("pico_hide_intro") === "true";
+    const params = new URLSearchParams(window.location.search);
+    const hasRoomParam = !!params.get("room");
 
-    if (!isHideIntro) {
+    // QR 코드로 초대받아 들어온 학생은 인트로를 건너뛰고 곧바로 닉네임 입력 로비로 직행!
+    if (!isHideIntro && !hasRoomParam) {
       if (this.screenIntro) this.screenIntro.classList.remove("hidden");
       if (this.screenLobby) this.screenLobby.classList.add("hidden");
       if (this.introAnim) this.introAnim.start();
@@ -312,6 +315,28 @@ class PicoParkApp {
       this.doJoinRoom(this.invitedRoomCode, this.btnQrJoinRoom);
     });
 
+    // 닉네임 입력란 Enter 키 입력 시 즉시 입장
+    this.inputNickname.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sound.ensureStarted();
+        if (this.isInvitedViaQR) {
+          this.doJoinRoom(this.invitedRoomCode, this.btnQrJoinRoom);
+        } else {
+          this.doJoinRoom(this.inputRoomCode.value.trim().toUpperCase(), this.btnJoinRoom);
+        }
+      }
+    });
+
+    // 방 코드 입력란 Enter 키 입력 시 즉시 입장
+    this.inputRoomCode.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sound.ensureStarted();
+        this.doJoinRoom(this.inputRoomCode.value.trim().toUpperCase(), this.btnJoinRoom);
+      }
+    });
+
     // 초대 코드 복사
     const copyRoomCode = () => {
       if (!network.roomCode) return;
@@ -489,24 +514,42 @@ class PicoParkApp {
     });
   }
 
-  // 실제 입장 로직
-  async doJoinRoom(roomCode, btnElement) {
-    const nickname = this.inputNickname.value.trim() || `학생${Math.floor(Math.random() * 89 + 10)}`;
+  // 실제 입장 로직 (방탄 코드 확인 및 에러 메시지 상세화)
+  async doJoinRoom(targetCode, btnElement) {
+    const nickname = (this.inputNickname.value || "").trim() || `학생${Math.floor(Math.random() * 89 + 10)}`;
+
+    // 타겟 코드 우선순위: 넘겨받은 코드 -> this.invitedRoomCode -> URL searchParams -> input-room-code
+    let roomCode = targetCode || this.invitedRoomCode;
+    if (!roomCode || roomCode.length < 4) {
+      const params = new URLSearchParams(window.location.search);
+      roomCode = params.get("room") || (this.inputRoomCode ? this.inputRoomCode.value : "");
+    }
+    roomCode = (roomCode || "").trim().toUpperCase();
 
     if (!roomCode || roomCode.length < 4) {
       this.showToast("올바른 6자리 방 코드가 필요합니다.");
+      if (btnElement) btnElement.disabled = false;
       return;
     }
 
-    if (btnElement) btnElement.disabled = true;
-    this.showToast("선생님 방에 입장하는 중입니다...");
+    if (btnElement) {
+      btnElement.disabled = true;
+      btnElement.dataset.origText = btnElement.textContent;
+      btnElement.textContent = "연결 중...";
+    }
+    this.showToast(`선생님 방(${roomCode})에 연결하고 있습니다...`);
 
     try {
       const { roomCode: code } = await network.joinRoom(roomCode, nickname);
       this.onRoomReady(code, false);
+      this.showToast(`🎉 입장 성공! [${nickname}]님 환영합니다.`);
     } catch (err) {
-      if (btnElement) btnElement.disabled = false;
-      this.showToast("입장 실패: 방 코드를 확인해 주세요.");
+      console.error("입장 실패 상세 로그:", err);
+      if (btnElement) {
+        btnElement.disabled = false;
+        if (btnElement.dataset.origText) btnElement.textContent = btnElement.dataset.origText;
+      }
+      this.showToast(`❌ ${err.message || "입장 실패: 방 코드를 확인해 주세요."}`);
     }
   }
 
@@ -519,16 +562,19 @@ class PicoParkApp {
       this.isInvitedViaQR = true;
       this.invitedRoomCode = roomParam.trim().toUpperCase();
 
-      this.lobbyNormalActions.classList.add("hidden");
-      this.lobbyQrActions.classList.remove("hidden");
-      this.qrInvitedBadge.classList.remove("hidden");
-      this.textInvitedCode.textContent = this.invitedRoomCode;
-      this.lobbyDescText.textContent = "선생님 방에 연결되었습니다! 닉네임을 적고 입장하세요.";
+      if (this.inputRoomCode) this.inputRoomCode.value = this.invitedRoomCode;
+      if (this.lobbyNormalActions) this.lobbyNormalActions.classList.add("hidden");
+      if (this.lobbyQrActions) this.lobbyQrActions.classList.remove("hidden");
+      if (this.qrInvitedBadge) this.qrInvitedBadge.classList.remove("hidden");
+      if (this.textInvitedCode) this.textInvitedCode.textContent = this.invitedRoomCode;
+      if (this.lobbyDescText) this.lobbyDescText.textContent = "선생님 방에 연결되었습니다! 닉네임을 적고 입장하세요.";
 
-      this.inputNickname.placeholder = "내 이름 입력 (예: 김철수)";
-      setTimeout(() => this.inputNickname.focus(), 400);
+      if (this.inputNickname) {
+        this.inputNickname.placeholder = "내 이름 입력 (예: 김철수)";
+        setTimeout(() => this.inputNickname.focus(), 300);
+      }
 
-      this.showToast("QR 코드로 초대되었습니다! 이름을 적고 입장하세요.");
+      this.showToast(`QR 초대로 연결되었습니다! (방 코드: ${this.invitedRoomCode})`);
     }
   }
 
