@@ -60,8 +60,48 @@
   <!-- 메인 뷰포트 컨테이너 -->
   <div id="app-container">
 
+    <!-- 0. 피코파크 플레이 연출 오프닝 인트로 화면 -->
+    <div id="screen-intro" class="intro-screen">
+      <div class="intro-content">
+        <div class="intro-header">
+          <div class="intro-badge">✨ 플레이 튜토리얼 데모</div>
+          <h1 class="intro-title">🐱 PICO PARK WEB</h1>
+          <p class="intro-subtitle">친구 머리 위에 올라타고 밧줄로 연결되어 문을 여는 실시간 멀티플레이 협동 게임!</p>
+        </div>
+
+        <!-- 피코파크 실제 플레이 시연 캔버스 -->
+        <div class="intro-canvas-wrap">
+          <canvas id="intro-canvas" width="840" height="360"></canvas>
+          <div class="intro-canvas-overlay">
+            <span id="text-intro-guide">🏃 1단계: 친구들이 모여 협동을 준비합니다!</span>
+          </div>
+        </div>
+
+        <!-- 하단 조작 액션 툴바 -->
+        <div class="intro-actions">
+          <button id="btn-intro-start" class="btn btn-primary" style="font-size: 1.15rem; padding: 14px 28px;">
+            <span>🎮 게임 시작하기</span>
+          </button>
+          <button id="btn-intro-skip" class="btn btn-secondary" style="font-size: 1rem; padding: 14px 22px;">
+            <span>⏩ 건너뛰기</span>
+          </button>
+          <button id="btn-intro-dontshow" class="btn btn-outline" title="다음 접속 시 인트로를 자동으로 건너뜁니다">
+            <span>🚫 다시 보지 않기</span>
+          </button>
+        </div>
+
+        <!-- 다시 보지 않기 체크박스 옵션 -->
+        <div class="intro-footer-opt">
+          <label class="intro-chk-label">
+            <input type="checkbox" id="chk-intro-hide">
+            <span>다음 접속부터 인트로 화면 건너뛰기 (기억하기)</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
     <!-- 1. 메인 입장 로비 화면 -->
-    <div id="screen-lobby" class="lobby-screen">
+    <div id="screen-lobby" class="lobby-screen hidden">
       <h1 class="lobby-title">피코파크 웹</h1>
       <p id="lobby-desc-text" class="lobby-subtitle">다 함께 머리 위에 올라타고 협동하여 문을 여세요!</p>
 
@@ -96,6 +136,13 @@
           <span>🎮 게임 방 입장하기</span>
         </button>
         <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">입장 후 화면을 가로로 돌려 게임패드로 조작합니다.</span>
+      </div>
+
+      <!-- 오프닝 인트로 다시보기 버튼 -->
+      <div style="margin-top: 16px; text-align: center;">
+        <button id="btn-reopen-intro" class="btn-text-link" title="플레이 안내 인트로 다시보기">
+          🎬 오프닝 인트로 다시보기
+        </button>
       </div>
     </div>
 

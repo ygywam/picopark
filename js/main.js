@@ -7,6 +7,7 @@ import { PlayerRenderer } from "./player.js";
 import { PhysicsEngine } from "./physics.js";
 import { GimmickManager } from "./gimmicks.js";
 import { getStageData, getAllStageSummaries, STAGE_CATEGORIES, TOTAL_STAGES } from "./stages.js";
+import { IntroAnimation } from "./intro.js";
 
 class PicoParkApp {
   constructor() {
@@ -98,6 +99,71 @@ class PicoParkApp {
     countSpan.textContent = stageInfo.requiredPlayers;
   }
 
+  // 인트로 화면 초기화 및 표시 여부 판별
+  initIntro() {
+    const isHideIntro = localStorage.getItem("pico_hide_intro") === "true";
+
+    if (!isHideIntro) {
+      if (this.screenIntro) this.screenIntro.classList.remove("hidden");
+      if (this.screenLobby) this.screenLobby.classList.add("hidden");
+      if (this.introAnim) this.introAnim.start();
+    } else {
+      if (this.screenIntro) this.screenIntro.classList.add("hidden");
+      if (this.screenLobby) this.screenLobby.classList.remove("hidden");
+    }
+
+    // 게임 시작하기 버튼
+    if (this.btnIntroStart) {
+      this.btnIntroStart.addEventListener("click", () => {
+        const shouldHide = this.chkIntroHide && this.chkIntroHide.checked;
+        this.closeIntro(shouldHide);
+      });
+    }
+
+    // 건너뛰기 버튼
+    if (this.btnIntroSkip) {
+      this.btnIntroSkip.addEventListener("click", () => {
+        const shouldHide = this.chkIntroHide && this.chkIntroHide.checked;
+        this.closeIntro(shouldHide);
+      });
+    }
+
+    // 다시 보지 않기 버튼
+    if (this.btnIntroDontShow) {
+      this.btnIntroDontShow.addEventListener("click", () => {
+        this.closeIntro(true);
+      });
+    }
+
+    // 로비의 오프닝 인트로 다시보기 버튼
+    if (this.btnReopenIntro) {
+      this.btnReopenIntro.addEventListener("click", () => {
+        localStorage.removeItem("pico_hide_intro");
+        if (this.chkIntroHide) this.chkIntroHide.checked = false;
+        if (this.screenLobby) this.screenLobby.classList.add("hidden");
+        if (this.screenIntro) this.screenIntro.classList.remove("hidden");
+        if (this.introAnim) this.introAnim.start();
+      });
+    }
+  }
+
+  // 인트로 닫고 메인 로비 진입
+  closeIntro(saveHide = false) {
+    if (saveHide) {
+      localStorage.setItem("pico_hide_intro", "true");
+      this.showToast("다음 접속부터 인트로가 자동으로 건너뛰어집니다.");
+    }
+    if (this.introAnim) this.introAnim.stop();
+    if (this.screenIntro) this.screenIntro.classList.add("hidden");
+    if (this.screenLobby) this.screenLobby.classList.remove("hidden");
+
+    // 배경음악 자동 시작 활성화
+    sound.ensureStarted();
+    if (this.textBgmTheme) {
+      this.textBgmTheme.textContent = `🎵 ${sound.getCurrentTheme().name}`;
+    }
+  }
+
   // DOM 요소 및 이벤트 리스너 바인딩
   initDOM() {
     this.screenLobby = document.getElementById("screen-lobby");
@@ -105,6 +171,17 @@ class PicoParkApp {
     this.screenGame = document.getElementById("screen-game");
     this.screenGamepad = document.getElementById("screen-gamepad");
     this.screenSpectator = document.getElementById("screen-spectator");
+
+    // 오프닝 인트로 화면 및 조작 버튼
+    this.screenIntro = document.getElementById("screen-intro");
+    this.btnIntroStart = document.getElementById("btn-intro-start");
+    this.btnIntroSkip = document.getElementById("btn-intro-skip");
+    this.btnIntroDontShow = document.getElementById("btn-intro-dontshow");
+    this.chkIntroHide = document.getElementById("chk-intro-hide");
+    this.btnReopenIntro = document.getElementById("btn-reopen-intro");
+
+    this.introAnim = new IntroAnimation("intro-canvas", "text-intro-guide");
+    this.initIntro();
 
     this.inputNickname = document.getElementById("input-nickname");
     this.inputRoomCode = document.getElementById("input-room-code");
