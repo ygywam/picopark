@@ -1,5 +1,6 @@
 // 피코파크 웹 멀티플레이어 - WebRTC P2P 통신 모듈
 // 외부 서버 없이 브라우저 간 직접 연결(Peer-to-Peer DataChannel)
+// 모바일 LTE/5G 및 학교 방화벽 통과를 위한 글로벌 무료 TURN 릴레이 풀 내장
 
 // 30가지 겹치지 않는 선명하고 예쁜 파스텔/비비드 색상 팔레트
 export const PLAYER_COLORS = [
@@ -9,6 +10,26 @@ export const PLAYER_COLORS = [
   "#ec4899", "#f43f5e", "#fb7185", "#38bdf8", "#4ade80",
   "#facc15", "#fb923c", "#f472b6", "#c084fc", "#818cf8",
   "#60a5fa", "#34d399", "#a3e635", "#e879f9", "#2dd4bf"
+];
+
+// 고속 STUN 및 방화벽/Symmetric NAT 통과를 위한 오픈릴레이 무료 TURN 서버 풀
+export const DEFAULT_ICE_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:stun2.l.google.com:19302" },
+  { urls: "stun:stun3.l.google.com:19302" },
+  { urls: "stun:stun4.l.google.com:19302" },
+  { urls: "stun:stun.cloudflare.com:3478" },
+  { urls: "stun:openrelay.metered.ca:80" },
+  {
+    urls: [
+      "turn:openrelay.metered.ca:80",
+      "turn:openrelay.metered.ca:443",
+      "turn:openrelay.metered.ca:443?transport=tcp"
+    ],
+    username: "openrelay",
+    credential: "openrelay"
+  }
 ];
 
 class NetworkManager {
@@ -29,11 +50,15 @@ class NetworkManager {
     // 전체 참가자 목록 (호스트 포함): Map<id, { id, nickname, color, isHost, x, y, vx, vy, isGrounded, facing }
     this.players = new Map();
 
+    // 브로커 시그널링 세션 유지용 하트비트 타이머
+    this.heartbeatTimer = null;
+
     // 이벤트 리스너 콜백
     this.onLobbyUpdate = null;
     this.onGameStart = null;
     this.onStateSync = null;
     this.onError = null;
+    this.onCheerReceived = null;
   }
 
   // 6자리 난수 방 코드 생성
@@ -46,16 +71,38 @@ class NetworkManager {
     return code;
   }
 
+  // 시그널링 브로커 연결 유지용 하트비트 시작
+  startHeartbeat() {
+    this.stopHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      if (this.peer && !this.peer.destroyed) {
+        if (this.peer.disconnected) {
+          console.warn("[Network] Peer disconnected from broker, attempting reconnect...");
+          this.peer.reconnect();
+        }
+      }
+    }, 15000);
+  }
+
+  // 하트비트 중단
+  stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
   // 방 만들기 (호스트)
   createRoom(nickname) {
     return new Promise((resolve, reject) => {
+      this.stopHeartbeat();
       // 기존 연결 정리
       if (this.peer && !this.peer.destroyed) {
         this.peer.destroy();
       }
 
       this.isHost = true;
-      this.myNickname = nickname || "방장";
+      this.myNickname = nickname || "선생님";
       this.roomCode = this.generateRoomCode();
       const peerId = `pico-${this.roomCode}`;
 
@@ -63,12 +110,7 @@ class NetworkManager {
       this.peer = new window.Peer(peerId, {
         debug: 1,
         config: {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-            { urls: "stun:stun2.l.google.com:19302" },
-            { urls: "stun:stun.cloudflare.com:3478" }
-          ]
+          iceServers: DEFAULT_ICE_SERVERS
         }
       });
 
@@ -90,8 +132,17 @@ class NetworkManager {
           facing: 1
         });
 
+        this.startHeartbeat();
         resolve({ roomCode: this.roomCode, myId: this.myId });
         if (this.onLobbyUpdate) this.onLobbyUpdate(Array.from(this.players.values()));
+      });
+
+      // 시그널링 서버 연결 끊김 시 자동 재연결
+      this.peer.on("disconnected", () => {
+        console.warn("[Network] Host disconnected from signaling broker. Auto-reconnecting...");
+        if (this.peer && !this.peer.destroyed) {
+          this.peer.reconnect();
+        }
       });
 
       // 게스트 접속 수신
@@ -141,8 +192,24 @@ class NetworkManager {
 
   // 게스트로부터 받은 메시지 처리 (호스트 측)
   handleMessageFromGuest(conn, data) {
+    if (!data || !data.type) return;
+
     switch (data.type) {
       case "join_req": {
+        // 이미 등록된 게스트라면 중복 처리 방지하고 환영 응답 재전송
+        if (this.players.has(conn.peer)) {
+          const existing = this.players.get(conn.peer);
+          conn.send({
+            type: "join_res",
+            success: true,
+            myId: conn.peer,
+            assignedColor: existing.color,
+            roomCode: this.roomCode
+          });
+          this.broadcastLobbyUpdate();
+          return;
+        }
+
         // 중복되지 않는 색상 자동 할당
         const usedColors = new Set(Array.from(this.players.values()).map(p => p.color));
         const assignedColor = PLAYER_COLORS.find(c => !usedColors.has(c)) || PLAYER_COLORS[this.players.size % PLAYER_COLORS.length];
@@ -198,9 +265,10 @@ class NetworkManager {
     }
   }
 
-  // 방 참가하기 (게스트 - 연결 보장 및 타임아웃 완비)
-  joinRoom(roomCode, nickname) {
+  // 방 참가하기 (게스트 - TURN 릴레이 지원 및 단계별 핸드셰이크 재시도 보장)
+  joinRoom(roomCode, nickname, onProgress = null) {
     return new Promise((resolve, reject) => {
+      this.stopHeartbeat();
       // 기존 연결 정리
       if (this.peer && !this.peer.destroyed) {
         this.peer.destroy();
@@ -208,38 +276,42 @@ class NetworkManager {
 
       this.isHost = false;
       this.roomCode = (roomCode || "").trim().toUpperCase();
-      this.myNickname = nickname || "플레이어";
+      this.myNickname = nickname || "학생";
       const hostPeerId = `pico-${this.roomCode}`;
 
       let isFinished = false;
+      let retryTimer = null;
 
-      // 12초 연결 타임아웃
+      // 18초 연결 타임아웃
       const timer = setTimeout(() => {
         if (!isFinished) {
           isFinished = true;
-          reject(new Error("선생님 방과의 연결 시간이 초과되었습니다. 방 코드를 확인하거나 잠시 후 다시 시도해 주세요."));
+          if (retryTimer) clearInterval(retryTimer);
+          reject(new Error("선생님 방과의 연결 시간이 초과되었습니다. 칠판의 초대 코드가 맞는지 확인하고 다시 시도해 주세요."));
         }
-      }, 12000);
+      }, 18000);
+
+      if (onProgress) onProgress("1단계: 통신 서버에 접속하고 있습니다...");
 
       // @ts-ignore
       this.peer = new window.Peer(null, {
         debug: 1,
         config: {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-            { urls: "stun:stun2.l.google.com:19302" },
-            { urls: "stun:stun.cloudflare.com:3478" }
-          ]
+          iceServers: DEFAULT_ICE_SERVERS
         }
       });
 
       this.peer.on("open", (id) => {
         if (isFinished) return;
         this.myId = id;
+        this.startHeartbeat();
+
+        if (onProgress) onProgress(`2단계: 선생님 방(${this.roomCode})을 탐색하고 있습니다...`);
 
         // 호스트에게 WebRTC 데이터 연결 시도
-        this.hostConnection = this.peer.connect(hostPeerId, { reliable: true });
+        this.hostConnection = this.peer.connect(hostPeerId, {
+          reliable: true
+        });
 
         const sendJoinReq = () => {
           if (this.hostConnection && this.hostConnection.open) {
@@ -250,16 +322,35 @@ class NetworkManager {
           }
         };
 
-        // 이미 연결이 열려있는 경우 즉시 전송, 아니면 open 이벤트 대기
-        if (this.hostConnection.open) {
+        // 연결 열리면 join_req 전송 및 응답 수신할 때까지 주기적 재시도
+        const setupConnection = () => {
+          if (onProgress) onProgress("3단계: P2P 협동 채널을 연결하고 있습니다...");
           sendJoinReq();
+
+          // 1.2초마다 응답 수신 확인 및 최대 5회 재시도 (패킷 유실 방지)
+          let retries = 0;
+          retryTimer = setInterval(() => {
+            if (isFinished || retries >= 5) {
+              if (retryTimer) clearInterval(retryTimer);
+              return;
+            }
+            retries++;
+            if (this.hostConnection && this.hostConnection.open) {
+              sendJoinReq();
+            }
+          }, 1200);
+        };
+
+        if (this.hostConnection.open) {
+          setupConnection();
         } else {
-          this.hostConnection.on("open", sendJoinReq);
+          this.hostConnection.on("open", setupConnection);
         }
 
         this.hostConnection.on("data", (data) => {
           if (!isFinished && data.type === "join_res") {
             clearTimeout(timer);
+            if (retryTimer) clearInterval(retryTimer);
             isFinished = true;
           }
           this.handleMessageFromHost(data, resolve, reject);
@@ -269,30 +360,42 @@ class NetworkManager {
           console.error("호스트 데이터채널 에러:", err);
           if (!isFinished) {
             clearTimeout(timer);
+            if (retryTimer) clearInterval(retryTimer);
             isFinished = true;
-            reject(new Error("방장과의 통신 채널 연결에 실패했습니다."));
+            reject(new Error("선생님 방과의 P2P 채널 연결에 실패했습니다."));
           }
         });
 
         this.hostConnection.on("close", () => {
           if (!isFinished) {
             clearTimeout(timer);
+            if (retryTimer) clearInterval(retryTimer);
             isFinished = true;
-            reject(new Error("방장과의 연결이 닫혔습니다."));
+            reject(new Error("선생님 방과의 연결이 닫혔습니다."));
           } else {
-            if (this.onError) this.onError(new Error("방장과의 연결이 끊어졌습니다."));
+            if (this.onError) this.onError(new Error("선생님 방과의 연결이 끊어졌습니다."));
           }
         });
+      });
+
+      this.peer.on("disconnected", () => {
+        console.warn("[Network] Guest disconnected from broker. Reconnecting...");
+        if (this.peer && !this.peer.destroyed) {
+          this.peer.reconnect();
+        }
       });
 
       this.peer.on("error", (err) => {
         console.error("PeerJS 참가 에러:", err);
         if (!isFinished) {
           clearTimeout(timer);
+          if (retryTimer) clearInterval(retryTimer);
           isFinished = true;
           let msg = "방에 입장할 수 없습니다.";
           if (err.type === "peer-unavailable") {
-            msg = "선생님 방(코드: " + this.roomCode + ")을 찾을 수 없습니다. 칠판의 코드를 다시 확인해 주세요.";
+            msg = `선생님 방(${this.roomCode})을 찾을 수 없습니다. 선생님이 방을 먼저 만들었는지, 코드가 맞는지 확인해 주세요.`;
+          } else if (err.type === "network") {
+            msg = "네트워크 연결이 불안정합니다. Wi-Fi 또는 데이터 연결을 확인해 주세요.";
           }
           reject(new Error(msg));
         }
@@ -302,6 +405,8 @@ class NetworkManager {
 
   // 호스트로부터 받은 메시지 처리 (게스트 측)
   handleMessageFromHost(data, resolve, reject) {
+    if (!data || !data.type) return;
+
     switch (data.type) {
       case "join_res":
         if (data.success) {

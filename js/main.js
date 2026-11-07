@@ -514,7 +514,7 @@ class PicoParkApp {
     });
   }
 
-  // 실제 입장 로직 (방탄 코드 확인 및 에러 메시지 상세화)
+  // 실제 입장 로직 (방탄 코드 확인 및 TURN 릴레이 실시간 상태 피드백)
   async doJoinRoom(targetCode, btnElement) {
     const nickname = (this.inputNickname.value || "").trim() || `학생${Math.floor(Math.random() * 89 + 10)}`;
 
@@ -535,12 +535,18 @@ class PicoParkApp {
     if (btnElement) {
       btnElement.disabled = true;
       btnElement.dataset.origText = btnElement.textContent;
-      btnElement.textContent = "연결 중...";
+      btnElement.textContent = "연결 시도 중...";
     }
-    this.showToast(`선생님 방(${roomCode})에 연결하고 있습니다...`);
+
+    const progressCallback = (msg) => {
+      this.showToast(msg);
+      if (btnElement) {
+        btnElement.textContent = msg.split(":")[0] || "연결 중...";
+      }
+    };
 
     try {
-      const { roomCode: code } = await network.joinRoom(roomCode, nickname);
+      const { roomCode: code } = await network.joinRoom(roomCode, nickname, progressCallback);
       this.onRoomReady(code, false);
       this.showToast(`🎉 입장 성공! [${nickname}]님 환영합니다.`);
     } catch (err) {

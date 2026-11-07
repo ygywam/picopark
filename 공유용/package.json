@@ -1,0 +1,15 @@
+{
+  "name": "pico-park-web",
+  "version": "1.0.0",
+  "description": "실시간 웹 멀티플레이 피코파크 스타일 협동 플랫포머 게임",
+  "main": "server/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
