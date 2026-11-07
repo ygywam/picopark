@@ -16,6 +16,14 @@ class PicoParkApp {
     this.currentStageIndex = 0;
     this.currentDifficulty = "NORMAL";
     this.gimmickManager = new GimmickManager();
+    this.lastWrongKeyAlert = null;
+
+    // 가짜 단어 열쇠 문 거부 시 알림 이벤트
+    this.gimmickManager.onWrongKey = (word) => {
+      this.lastWrongKeyAlert = word;
+      this.showToast(`❌ [${word}] 단어는 빈칸에 맞지 않습니다! (말씀을 다시 확인하세요)`);
+    };
+
     this.currentStage = null;
 
     this.gameState = "LOBBY"; // LOBBY, ROOM, PLAYING, CLEARED, ALL_CLEARED
@@ -58,7 +66,9 @@ class PicoParkApp {
         if (cat.id === "cat-3p") return s.index >= 10 && s.index < 20;
         if (cat.id === "cat-4p") return s.index >= 20 && s.index < 30;
         if (cat.id === "cat-group") return s.index >= 30 && s.index < 40;
-        return s.index >= 40 && s.index < 50;
+        if (cat.id === "cat-class") return s.index >= 40 && s.index < 50;
+        if (cat.id === "cat-commandments") return s.index >= 50 && s.index < 60;
+        return false;
       });
 
       items.forEach(item => {
@@ -624,6 +634,20 @@ class PicoParkApp {
           this.gimmickManager.doorUnlocked = data.gimmicks.doorUnlocked;
           this.gimmickManager.stageCleared = data.gimmicks.stageCleared;
 
+          // 단어 열쇠 / 복수 열쇠 동기화
+          if (data.gimmicks.keys && this.gimmickManager.keys) {
+            data.gimmicks.keys.forEach((rk, i) => {
+              if (this.gimmickManager.keys[i]) {
+                Object.assign(this.gimmickManager.keys[i], rk);
+              }
+            });
+          }
+
+          // 가짜 열쇠 거부 알림 수신
+          if (data.gimmicks.wrongKeyAlert) {
+            this.showToast(`❌ [${data.gimmicks.wrongKeyAlert}] 단어는 빈칸에 맞지 않습니다! (말씀을 다시 확인하세요)`);
+          }
+
           if (data.gimmicks.bridges) {
             data.gimmicks.bridges.forEach((br, i) => {
               if (this.gimmickManager.bridges[i]) {
@@ -849,6 +873,16 @@ class PicoParkApp {
         })),
         gimmicks: {
           key: this.gimmickManager.key,
+          keys: this.gimmickManager.keys.map(k => ({
+            id: k.id,
+            x: k.x,
+            y: k.y,
+            word: k.word,
+            isCorrect: k.isCorrect,
+            isCollected: k.isCollected,
+            holderId: k.holderId
+          })),
+          wrongKeyAlert: this.lastWrongKeyAlert || null,
           doorUnlocked: this.gimmickManager.doorUnlocked,
           stageCleared: this.gimmickManager.stageCleared,
           bridges: this.gimmickManager.bridges.map(br => ({ isActive: br.isActive })),
@@ -856,6 +890,7 @@ class PicoParkApp {
           pushBlocks: this.gimmickManager.pushBlocks.map(b => ({ x: b.x, y: b.y }))
         }
       });
+      this.lastWrongKeyAlert = null; // 1회 브로드캐스트 후 리셋
     }
 
     // 응원 이모지 파티클 애니메이션
@@ -947,11 +982,18 @@ class PicoParkApp {
       ctx.font = "bold 44px sans-serif";
       ctx.fillStyle = "#047857";
       ctx.textAlign = "center";
-      ctx.fillText("🎉 STAGE CLEAR! 🎉", this.canvas.width / 2, this.canvas.height / 2 - 10);
 
-      ctx.font = "bold 20px sans-serif";
-      ctx.fillStyle = "#065f46";
-      ctx.fillText("모두가 문 안으로 무사히 탈출했습니다!", this.canvas.width / 2, this.canvas.height / 2 + 35);
+      if (this.currentStage.isCommandment && this.currentStage.commandment) {
+        ctx.fillText(`🎉 ${this.currentStage.commandment.title} 석판 획득! 🎉`, this.canvas.width / 2, this.canvas.height / 2 - 10);
+        ctx.font = "bold 22px sans-serif";
+        ctx.fillStyle = "#065f46";
+        ctx.fillText(`"${this.currentStage.commandment.fullVerse}"`, this.canvas.width / 2, this.canvas.height / 2 + 35);
+      } else {
+        ctx.fillText("🎉 STAGE CLEAR! 🎉", this.canvas.width / 2, this.canvas.height / 2 - 10);
+        ctx.font = "bold 20px sans-serif";
+        ctx.fillStyle = "#065f46";
+        ctx.fillText("모두가 문 안으로 무사히 탈출했습니다!", this.canvas.width / 2, this.canvas.height / 2 + 35);
+      }
     }
   }
 
@@ -971,47 +1013,189 @@ class PicoParkApp {
     });
   }
 
-  // 상단 HUD 렌더링
+  // 상단 HUD 렌더링 (십계명 특별 스테이지 및 일반 스테이지 맞춤형)
   drawHUD(ctx, activeCount) {
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 18px sans-serif";
-    ctx.textAlign = "left";
-    const diffTag = this.currentDifficulty === "EASY" ? " [쉬움]" : this.currentDifficulty === "HARD" ? " [매운맛]" : "";
-    const reqTag = `[${this.currentStage.requiredPlayers}인 추천]`;
-    ctx.fillText(`${reqTag} ${this.currentStage.name}${diffTag}`, 24, 38);
+    const isCmd = this.currentStage.isCommandment && this.currentStage.commandment;
 
-    ctx.font = "14px sans-serif";
-    ctx.fillStyle = "#64748b";
-    ctx.fillText(this.currentStage.description, 24, 62);
+    if (isCmd) {
+      const cmd = this.currentStage.commandment;
+      // 십계명 전용 상단 성경 말씀 HUD
+      ctx.save();
+      // 상단 성경 말씀 배너 박스
+      ctx.fillStyle = "rgba(254, 252, 232, 0.95)"; // 부드러운 양피지빛
+      ctx.strokeStyle = this.gimmickManager.doorUnlocked ? "#ca8a04" : "#cbd5e1";
+      ctx.lineWidth = 2;
+      const bannerW = this.canvas.width - 48;
+      const bannerH = 68;
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(24, 12, bannerW, bannerH, 10);
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        ctx.fillRect(24, 12, bannerW, bannerH);
+        ctx.strokeRect(24, 12, bannerW, bannerH);
+      }
 
-    const entered = this.gimmickManager.door.enteredPlayers ? this.gimmickManager.door.enteredPlayers.size : 0;
-    ctx.textAlign = "right";
-    ctx.font = "bold 16px sans-serif";
-    ctx.fillStyle = this.gimmickManager.doorUnlocked ? "#10b981" : "#475569";
-    ctx.fillText(`🚪 탈출 현황: ${entered} / ${activeCount}명 (총 접속 ${network.players.size}명)`, this.canvas.width - 24, 38);
+      // 좌측 계명 배지 및 성경 출처
+      ctx.font = "bold 17px sans-serif";
+      ctx.fillStyle = "#854d0e";
+      ctx.textAlign = "left";
+      ctx.fillText(`📜 [${cmd.title}] 출애굽기 20장`, 40, 38);
 
-    ctx.font = "13px sans-serif";
-    ctx.fillStyle = "#94a3b8";
-    ctx.fillText("A/D (이동) · Space (점프) · 벤치는 스마트폰으로 응원!", this.canvas.width - 24, 62);
+      // 말씀 구절 (문 열림 여부에 따른 빈칸 vs 완성 단어)
+      ctx.font = "bold 15px sans-serif";
+      if (this.gimmickManager.doorUnlocked) {
+        ctx.fillStyle = "#15803d";
+        ctx.fillText(`✨ "${cmd.fullVerse}" (${cmd.scripture}) - 말씀 열쇠 잠금 해제!`, 40, 62);
+      } else {
+        ctx.fillStyle = "#1e293b";
+        ctx.fillText(`🔍 "${cmd.blankVerse}" (${cmd.scripture})`, 40, 62);
+      }
+
+      // 우측 상단 진행도 및 탈출 현황
+      ctx.textAlign = "right";
+      ctx.font = "bold 15px sans-serif";
+      ctx.fillStyle = "#b45309";
+      ctx.fillText(`📜 십계명 석판: ${cmd.number} / 10 수집`, this.canvas.width - 40, 38);
+
+      const entered = this.gimmickManager.door.enteredPlayers ? this.gimmickManager.door.enteredPlayers.size : 0;
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillStyle = this.gimmickManager.doorUnlocked ? "#15803d" : "#64748b";
+      ctx.fillText(`🚪 문 탈출: ${entered} / ${activeCount}명 (최소 5인 협동)`, this.canvas.width - 40, 62);
+
+      ctx.restore();
+    } else {
+      // 일반 스테이지 HUD
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "bold 18px sans-serif";
+      ctx.textAlign = "left";
+      const diffTag = this.currentDifficulty === "EASY" ? " [쉬움]" : this.currentDifficulty === "HARD" ? " [매운맛]" : "";
+      const reqTag = `[${this.currentStage.requiredPlayers}인 추천]`;
+      ctx.fillText(`${reqTag} ${this.currentStage.name}${diffTag}`, 24, 38);
+
+      ctx.font = "14px sans-serif";
+      ctx.fillStyle = "#64748b";
+      ctx.fillText(this.currentStage.description, 24, 62);
+
+      const entered = this.gimmickManager.door.enteredPlayers ? this.gimmickManager.door.enteredPlayers.size : 0;
+      ctx.textAlign = "right";
+      ctx.font = "bold 16px sans-serif";
+      ctx.fillStyle = this.gimmickManager.doorUnlocked ? "#10b981" : "#475569";
+      ctx.fillText(`🚪 탈출 현황: ${entered} / ${activeCount}명 (총 접속 ${network.players.size}명)`, this.canvas.width - 24, 38);
+
+      ctx.font = "13px sans-serif";
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillText("A/D (이동) · Space (점프) · 벤치는 스마트폰으로 응원!", this.canvas.width - 24, 62);
+    }
   }
 
-  // 전 스테이지 완료 엔딩 화면
+  // 전 스테이지 완료 엔딩 화면 (십계명 특별 완성판 vs 50개 일반 올클리어)
   drawEndingScreen(ctx) {
     ctx.fillStyle = "#f8fafc";
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    ctx.fillStyle = "#4f46e5";
-    ctx.font = "bold 52px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("🏆 ALL 50 STAGES CLEARED! 🏆", this.canvas.width / 2, this.canvas.height / 2 - 40);
+    if (this.currentStageIndex >= 50) {
+      // 📜 십계명 석판 완성 엔딩
+      ctx.save();
 
-    ctx.fillStyle = "#1e293b";
-    ctx.font = "bold 24px sans-serif";
-    ctx.fillText("우리 반 모두가 50개 스테이지의 대기록을 완성했습니다!", this.canvas.width / 2, this.canvas.height / 2 + 20);
+      // 타이틀
+      ctx.fillStyle = "#b45309";
+      ctx.font = "bold 44px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("📜 십계명 두 석판 완성! 📜", this.canvas.width / 2, 70);
 
-    ctx.fillStyle = "#64748b";
-    ctx.font = "16px sans-serif";
-    ctx.fillText("최고의 팀워크를 보여준 학생들에게 박수를 보냅니다.", this.canvas.width / 2, this.canvas.height / 2 + 65);
+      ctx.fillStyle = "#475569";
+      ctx.font = "bold 18px sans-serif";
+      ctx.fillText("최소 5명 이상의 피코들이 믿음과 협동으로 제1~10계명의 말씀을 모두 모았습니다! (출애굽기 20장)", this.canvas.width / 2, 105);
+
+      // 두 석판(Tablets of Stone) 그리기
+      const tabletW = 540;
+      const tabletH = 500;
+      const t1x = this.canvas.width / 2 - tabletW - 20;
+      const t2x = this.canvas.width / 2 + 20;
+      const ty = 140;
+
+      // 석판 배경 함수
+      const drawTablet = (x, y, w, h, title, items) => {
+        ctx.fillStyle = "#fefce8";
+        ctx.strokeStyle = "#ca8a04";
+        ctx.lineWidth = 3;
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(x, y, w, h, [30, 30, 16, 16]);
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          ctx.fillRect(x, y, w, h);
+          ctx.strokeRect(x, y, w, h);
+        }
+
+        // 석판 제목
+        ctx.fillStyle = "#92400e";
+        ctx.font = "bold 20px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(title, x + w / 2, y + 42);
+
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x + 40, y + 54);
+        ctx.lineTo(x + w - 40, y + 54);
+        ctx.stroke();
+
+        // 계명 목록
+        items.forEach((item, idx) => {
+          const itemY = y + 95 + (idx * 76);
+          ctx.textAlign = "left";
+          ctx.font = "bold 16px sans-serif";
+          ctx.fillStyle = "#854d0e";
+          ctx.fillText(item.num, x + 30, itemY);
+
+          ctx.font = "14px sans-serif";
+          ctx.fillStyle = "#1e293b";
+          ctx.fillText(item.text, x + 30, itemY + 22);
+
+          ctx.font = "12px sans-serif";
+          ctx.fillStyle = "#b45309";
+          ctx.fillText(`열쇠 단어: [ ${item.keyWord} ] · ${item.ref}`, x + 30, itemY + 42);
+        });
+      };
+
+      // 좌측 석판: 제1~5계명 (하나님과 부모님을 향한 계명)
+      drawTablet(t1x, ty, tabletW, tabletH, "첫 번째 석판 (제1 ~ 5계명)", [
+        { num: "제1계명", text: "너는 나 외에는 다른 신들을 네게 두지 말라", keyWord: "신들", ref: "출 20:3" },
+        { num: "제2계명", text: "너를 위하여 새긴 우상을 만들지 말라", keyWord: "우상", ref: "출 20:4" },
+        { num: "제3계명", text: "여호와의 이름을 망령되게 부르지 말라", keyWord: "이름", ref: "출 20:7" },
+        { num: "제4계명", text: "안식일을 기억하여 거룩하게 지키라", keyWord: "안식일", ref: "출 20:8" },
+        { num: "제5계명", text: "네 부모를 공경하라", keyWord: "부모", ref: "출 20:12" }
+      ]);
+
+      // 우측 석판: 제6~10계명 (이웃을 향한 사랑의 계명)
+      drawTablet(t2x, ty, tabletW, tabletH, "두 번째 석판 (제6 ~ 10계명)", [
+        { num: "제6계명", text: "살인하지 말라", keyWord: "살인", ref: "출 20:13" },
+        { num: "제7계명", text: "간음하지 말라", keyWord: "간음", ref: "출 20:14" },
+        { num: "제8계명", text: "도둑질하지 말라", keyWord: "도둑질", ref: "출 20:15" },
+        { num: "제9계명", text: "네 이웃에 대하여 거짓 증거하지 말라", keyWord: "거짓 증거", ref: "출 20:16" },
+        { num: "제10계명", text: "네 이웃의 소유를 탐내지 말라", keyWord: "탐내지", ref: "출 20:17" }
+      ]);
+
+      ctx.restore();
+    } else {
+      // 일반 50개 스테이지 엔딩
+      ctx.fillStyle = "#4f46e5";
+      ctx.font = "bold 52px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("🏆 ALL 50 STAGES CLEARED! 🏆", this.canvas.width / 2, this.canvas.height / 2 - 40);
+
+      ctx.fillStyle = "#1e293b";
+      ctx.font = "bold 24px sans-serif";
+      ctx.fillText("우리 반 모두가 50개 스테이지의 대기록을 완성했습니다!", this.canvas.width / 2, this.canvas.height / 2 + 20);
+
+      ctx.fillStyle = "#64748b";
+      ctx.font = "16px sans-serif";
+      ctx.fillText("최고의 팀워크를 보여준 학생들에게 박수를 보냅니다.", this.canvas.width / 2, this.canvas.height / 2 + 65);
+    }
   }
 
   // 토스트 메시지 출력

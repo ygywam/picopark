@@ -252,9 +252,12 @@ class SoundManager {
     } else if (stageIndex >= 30 && stageIndex < 40) {
       // 5~6인 협동: 왁자지껄 피코 행진곡
       targetThemeIdx = 3;
-    } else {
+    } else if (stageIndex >= 40 && stageIndex < 50) {
       // 8~30인 학급 단체: 피코 대행진곡
       targetThemeIdx = 3;
+    } else {
+      // 십계명 특별 스테이지 (50~59): 웅장한 고대 탐험 신비 테마 & 최종 계명 행진곡
+      targetThemeIdx = (stageIndex === 59) ? 3 : 1;
     }
 
     if (this.currentThemeIndex !== targetThemeIdx) {

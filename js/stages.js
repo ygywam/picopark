@@ -6,12 +6,13 @@ export const STAGE_CATEGORIES = [
   { id: "cat-3p", title: "🔺 3인 삼총사 챌린지 (11~20)", min: 3, max: 3 },
   { id: "cat-4p", title: "🔷 4인 스쿼드 챌린지 (21~30)", min: 4, max: 4 },
   { id: "cat-group", title: "⭐ 5~6인 모둠 챌린지 (31~40)", min: 5, max: 6 },
-  { id: "cat-class", title: "🏆 8~30인 학급 올스타 단체 챌린지 (41~50)", min: 8, max: 30 }
+  { id: "cat-class", title: "🏆 8~30인 학급 올스타 단체 챌린지 (41~50)", min: 8, max: 30 },
+  { id: "cat-commandments", title: "📜 [특별] 십계명 모으기 챌린지 (제1~10계명, 최소 5인 이상)", min: 5, max: 30 }
 ];
 
 export function getStageData(stageIndex, playerCount = 1, difficulty = "NORMAL") {
   const pCount = Math.max(1, playerCount);
-  const idx = Math.max(0, Math.min(49, stageIndex));
+  const idx = Math.max(0, Math.min(STAGE_DATABASE.length - 1, stageIndex));
 
   // 1인 접속 시 1인 튜토리얼 자동 적용
   if (pCount === 1 && idx === 0) {
@@ -1159,22 +1160,417 @@ const STAGE_DATABASE = [
     pushBlocks: [{ x: 500, y: 548, width: 100, height: 92, requiredPushers: Math.max(4, Math.floor(p * 0.5)) }],
     key: { x: 640, y: 500 },
     door: { x: 1140, y: 396 }
+  }),
+
+  // ==================== [CATEGORY 6: 특별 십계명 모으기 챌린지 51~60] ====================
+  // 제1계명: 너는 나 외에는 다른 [ 신들 ]을 네게 두지 말라 (출애굽기 20:3)
+  (p) => ({
+    id: 50,
+    name: "STAGE 51 · [제1계명] 다른 신들을 두지 말라",
+    category: "십계명 특별",
+    requiredPlayers: 5,
+    isCommandment: true,
+    commandment: {
+      number: 1,
+      title: "제1계명",
+      scripture: "출애굽기 20:3",
+      blankVerse: "너는 나 외에는 다른 [  ? ?  ]을 네게 두지 말라",
+      fullVerse: "너는 나 외에는 다른 [ 신들 ]을 네게 두지 말라",
+      correctWord: "신들"
+    },
+    description: "5명이 피라미드 탑을 쌓아 하늘 높이 있는 정답 열쇠 [신들]을 얻어 문으로 가세요!",
+    spawnPoint: { x: 100, y: 604 },
+    ropeEnabled: false,
+    platforms: [
+      { x: 0, y: 640, width: 1280, height: 80 },
+      { x: 1000, y: 480, width: 280, height: 160 }
+    ],
+    bridges: [],
+    switches: [],
+    pushBlocks: [],
+    keys: [
+      { x: 620, y: 140, word: "신들", isCorrect: true }, // 바닥에서 5단 탑 쌓아야 닿는 높이
+      { x: 340, y: 590, word: "우상", isCorrect: false },
+      { x: 500, y: 590, word: "재물", isCorrect: false },
+      { x: 820, y: 590, word: "보석", isCorrect: false }
+    ],
+    key: { x: 620, y: 140 },
+    door: { x: 1140, y: 416 }
+  }),
+
+  // 제2계명: 너를 위하여 새긴 [ 우상 ]을 만들지 말고... (출애굽기 20:4)
+  (p) => ({
+    id: 51,
+    name: "STAGE 52 · [제2계명] 새긴 우상을 만들지 말라",
+    category: "십계명 특별",
+    requiredPlayers: 5,
+    isCommandment: true,
+    commandment: {
+      number: 2,
+      title: "제2계명",
+      scripture: "출애굽기 20:4",
+      blankVerse: "너를 위하여 새긴 [  ? ?  ]을 만들지 말고...",
+      fullVerse: "너를 위하여 새긴 [ 우상 ]을 만들지 말고...",
+      correctWord: "우상"
+    },
+    description: "5명이 힘을 합쳐 거대 블록을 밀어내고 뒤에 숨겨진 정답 열쇠 [우상]을 찾으세요!",
+    spawnPoint: { x: 100, y: 604 },
+    ropeEnabled: false,
+    platforms: [
+      { x: 0, y: 640, width: 1280, height: 80 },
+      { x: 680, y: 460, width: 200, height: 180 },
+      { x: 1020, y: 500, width: 260, height: 140 }
+    ],
+    bridges: [],
+    switches: [],
+    pushBlocks: [
+      { x: 440, y: 544, width: 110, height: 96, requiredPushers: 5 } // 5명이 함께 밀어야 이동!
+    ],
+    keys: [
+      { x: 590, y: 590, word: "우상", isCorrect: true }, // 상자 뒤 숨은 공간
+      { x: 260, y: 590, word: "신전", isCorrect: false },
+      { x: 740, y: 410, word: "그림", isCorrect: false },
+      { x: 920, y: 590, word: "동상", isCorrect: false }
+    ],
+    key: { x: 590, y: 590 },
+    door: { x: 1140, y: 436 }
+  }),
+
+  // 제3계명: 너는 네 하나님 여호와의 [ 이름 ]을 망령되게 부르지 말라 (출애굽기 20:7)
+  (p) => ({
+    id: 52,
+    name: "STAGE 53 · [제3계명] 여호와의 이름을 거룩히 하라",
+    category: "십계명 특별",
+    requiredPlayers: 5,
+    isCommandment: true,
+    commandment: {
+      number: 3,
+      title: "제3계명",
+      scripture: "출애굽기 20:7",
+      blankVerse: "너는 네 하나님 여호와의 [  ? ?  ]을 망령되게 부르지 말라",
+      fullVerse: "너는 네 하나님 여호와의 [ 이름 ]을 망령되게 부르지 말라",
+      correctWord: "이름"
+    },
+    description: "5명이 동시에 5개 스위치를 밟아 하늘 다리를 완성하고 정답 열쇠 [이름]을 얻으세요!",
+    spawnPoint: { x: 80, y: 604 },
+    ropeEnabled: false,
+    platforms: [
+      { x: 0, y: 640, width: 1280, height: 80 },
+      { x: 880, y: 380, width: 400, height: 260 }
+    ],
+    bridges: [
+      { x: 520, y: 380, width: 360, height: 24, triggerSwitchId: "sw-cmd3-all" }
+    ],
+    switches: [
+      { x: 160, y: 630, width: 45, targetId: "sw-cmd3-all" },
+      { x: 240, y: 630, width: 45, targetId: "sw-cmd3-all" },
+      { x: 320, y: 630, width: 45, targetId: "sw-cmd3-all" },
+      { x: 400, y: 630, width: 45, targetId: "sw-cmd3-all" },
+      { x: 480, y: 630, width: 45, targetId: "sw-cmd3-all" }
+    ],
+    pushBlocks: [],
+    keys: [
+      { x: 1040, y: 320, word: "이름", isCorrect: true }, // 다리 건너편
+      { x: 120, y: 460, word: "영광", isCorrect: false },
+      { x: 340, y: 460, word: "말씀", isCorrect: false },
+      { x: 620, y: 590, word: "성전", isCorrect: false }
+    ],
+    key: { x: 1040, y: 320 },
+    door: { x: 1180, y: 316 }
+  }),
+
+  // 제4계명: [ 안식일 ]을 기억하여 거룩하게 지키라 (출애굽기 20:8)
+  (p) => ({
+    id: 53,
+    name: "STAGE 54 · [제4계명] 안식일을 거룩히 지키라",
+    category: "십계명 특별",
+    requiredPlayers: 5,
+    isCommandment: true,
+    commandment: {
+      number: 4,
+      title: "제4계명",
+      scripture: "출애굽기 20:8",
+      blankVerse: "[  ? ? ?  ]을 기억하여 거룩하게 지키라",
+      fullVerse: "[ 안식일 ]을 기억하여 거룩하게 지키라",
+      correctWord: "안식일"
+    },
+    description: "5인 피코 밧줄 번지점프! 절벽 아래 깊은 계곡 속 진짜 열쇠 [안식일]을 낚아채세요!",
+    spawnPoint: { x: 100, y: 384 },
+    ropeEnabled: true,
+    platforms: [
+      { x: 0, y: 420, width: 360, height: 300 },
+      { x: 920, y: 420, width: 360, height: 300 },
+      { x: 440, y: 680, width: 400, height: 40 }
+    ],
+    bridges: [],
+    switches: [],
+    pushBlocks: [],
+    keys: [
+      { x: 640, y: 540, word: "안식일", isCorrect: true }, // 절벽 중간 허공 (밧줄 번지 전용)
+      { x: 200, y: 370, word: "주일", isCorrect: false },
+      { x: 520, y: 640, word: "절기", isCorrect: false },
+      { x: 740, y: 640, word: "유월절", isCorrect: false }
+    ],
+    key: { x: 640, y: 540 },
+    door: { x: 1140, y: 356 }
+  }),
+
+  // 제5계명: 네 [ 부모 ]를 공경하라... (출애굽기 20:12)
+  (p) => ({
+    id: 54,
+    name: "STAGE 55 · [제5계명] 네 부모를 공경하라",
+    category: "십계명 특별",
+    requiredPlayers: 5,
+    isCommandment: true,
+    commandment: {
+      number: 5,
+      title: "제5계명",
+      scripture: "출애굽기 20:12",
+      blankVerse: "네 [  ? ?  ]를 공경하라 그리하면 생명이 길리라",
+      fullVerse: "네 [ 부모 ]를 공경하라 그리하면 생명이 길리라",
+      correctWord: "부모"
+    },
+    description: "2명이 스위치를 유지하고 3명이 3단 탑을 쌓아 상단 성소의 [부모] 열쇠를 구하세요!",
+    spawnPoint: { x: 100, y: 604 },
+    ropeEnabled: false,
+    platforms: [
+      { x: 0, y: 640, width: 1280, height: 80 },
+      { x: 440, y: 420, width: 400, height: 24 },
+      { x: 560, y: 220, width: 160, height: 24 }
+    ],
+    bridges: [
+      { x: 260, y: 420, width: 180, height: 24, triggerSwitchId: "sw-cmd5" }
+    ],
+    switches: [
+      { x: 160, y: 630, width: 50, targetId: "sw-cmd5" },
+      { x: 1040, y: 630, width: 50, targetId: "sw-cmd5" }
+    ],
+    pushBlocks: [],
+    keys: [
+      { x: 640, y: 160, word: "부모", isCorrect: true }, // 상단 성소
+      { x: 320, y: 590, word: "스승", isCorrect: false },
+      { x: 640, y: 370, word: "친구", isCorrect: false },
+      { x: 880, y: 590, word: "이웃", isCorrect: false }
+    ],
+    key: { x: 640, y: 160 },
+    door: { x: 1140, y: 576 }
+  }),
+
+  // 제6계명: [ 살인 ]하지 말라 (출애굽기 20:13)
+  (p) => ({
+    id: 55,
+    name: "STAGE 56 · [제6계명] 살인하지 말라",
+    category: "십계명 특별",
+    requiredPlayers: 5,
+    isCommandment: true,
+    commandment: {
+      number: 6,
+      title: "제6계명",
+      scripture: "출애굽기 20:13",
+      blankVerse: "[  ? ?  ]하지 말라",
+      fullVerse: "[ 살인 ]하지 말라",
+      correctWord: "살인"
+    },
+    description: "5단 인간 사다리 릴레이! 서로 디딤돌이 되어 꼭대기의 [살인] 열쇠를 획득하세요!",
+    spawnPoint: { x: 80, y: 604 },
+    ropeEnabled: false,
+    platforms: [
+      { x: 0, y: 640, width: 340, height: 80 },
+      { x: 380, y: 520, width: 180, height: 200 },
+      { x: 600, y: 400, width: 180, height: 320 },
+      { x: 820, y: 280, width: 180, height: 440 },
+      { x: 1040, y: 160, width: 240, height: 560 }
+    ],
+    bridges: [],
+    switches: [],
+    pushBlocks: [],
+    keys: [
+      { x: 1160, y: 100, word: "살인", isCorrect: true }, // 꼭대기 층
+      { x: 220, y: 590, word: "미움", isCorrect: false },
+      { x: 470, y: 470, word: "다툼", isCorrect: false },
+      { x: 690, y: 350, word: "시기", isCorrect: false }
+    ],
+    key: { x: 1160, y: 100 },
+    door: { x: 1200, y: 96 }
+  }),
+
+  // 제7계명: [ 간음 ]하지 말라 (출애굽기 20:14)
+  (p) => ({
+    id: 56,
+    name: "STAGE 57 · [제7계명] 순결함을 지키라",
+    category: "십계명 특별",
+    requiredPlayers: 5,
+    isCommandment: true,
+    commandment: {
+      number: 7,
+      title: "제7계명",
+      scripture: "출애굽기 20:14",
+      blankVerse: "[  ? ?  ]하지 말라",
+      fullVerse: "[ 간음 ]하지 말라",
+      correctWord: "간음"
+    },
+    description: "유혹의 가짜 열쇠들을 피해, 5인 스위치를 열고 정답 열쇠 [간음]을 찾아오세요!",
+    spawnPoint: { x: 80, y: 604 },
+    ropeEnabled: false,
+    platforms: [
+      { x: 0, y: 640, width: 1280, height: 80 },
+      { x: 0, y: 360, width: 440, height: 24 },
+      { x: 680, y: 360, width: 600, height: 24 }
+    ],
+    bridges: [
+      { x: 440, y: 360, width: 240, height: 24, triggerSwitchId: "sw-cmd7" }
+    ],
+    switches: [
+      { x: 200, y: 350, width: 45, targetId: "sw-cmd7" },
+      { x: 300, y: 350, width: 45, targetId: "sw-cmd7" },
+      { x: 740, y: 630, width: 45, targetId: "sw-cmd7" },
+      { x: 840, y: 630, width: 45, targetId: "sw-cmd7" }
+    ],
+    pushBlocks: [],
+    keys: [
+      { x: 1100, y: 300, word: "간음", isCorrect: true }, // 상단 비밀 방
+      { x: 300, y: 590, word: "거짓", isCorrect: false },
+      { x: 560, y: 590, word: "탐심", isCorrect: false },
+      { x: 800, y: 300, word: "외도", isCorrect: false }
+    ],
+    key: { x: 1100, y: 300 },
+    door: { x: 1200, y: 576 }
+  }),
+
+  // 제8계명: [ 도둑질 ]하지 말라 (출애굽기 20:15)
+  (p) => ({
+    id: 57,
+    name: "STAGE 58 · [제8계명] 도둑질하지 말라",
+    category: "십계명 특별",
+    requiredPlayers: 5,
+    isCommandment: true,
+    commandment: {
+      number: 8,
+      title: "제8계명",
+      scripture: "출애굽기 20:15",
+      blankVerse: "[  ? ? ?  ]하지 말라",
+      fullVerse: "[ 도둑질 ]하지 말라",
+      correctWord: "도둑질"
+    },
+    description: "2개의 거대 금고 블록을 5명이 협력하여 이동시키고 정답 열쇠 [도둑질]을 구하세요!",
+    spawnPoint: { x: 80, y: 604 },
+    ropeEnabled: false,
+    platforms: [
+      { x: 0, y: 640, width: 1280, height: 80 },
+      { x: 780, y: 440, width: 220, height: 200 },
+      { x: 1040, y: 300, width: 240, height: 340 }
+    ],
+    bridges: [],
+    switches: [],
+    pushBlocks: [
+      { x: 320, y: 554, width: 86, height: 86, requiredPushers: 3 },
+      { x: 540, y: 554, width: 86, height: 86, requiredPushers: 2 }
+    ],
+    keys: [
+      { x: 890, y: 380, word: "도둑질", isCorrect: true }, // 상단 금고 방
+      { x: 220, y: 590, word: "낭비", isCorrect: false },
+      { x: 440, y: 590, word: "사기", isCorrect: false },
+      { x: 680, y: 590, word: "강도", isCorrect: false }
+    ],
+    key: { x: 890, y: 380 },
+    door: { x: 1160, y: 236 }
+  }),
+
+  // 제9계명: 네 이웃에 대하여 [ 거짓 증거 ]하지 말라 (출애굽기 20:16)
+  (p) => ({
+    id: 58,
+    name: "STAGE 59 · [제9계명] 거짓 증거하지 말라",
+    category: "십계명 특별",
+    requiredPlayers: 5,
+    isCommandment: true,
+    commandment: {
+      number: 9,
+      title: "제9계명",
+      scripture: "출애굽기 20:16",
+      blankVerse: "네 이웃에 대하여 [  ? ? ? ?  ]하지 말라",
+      fullVerse: "네 이웃에 대하여 [ 거짓 증거 ]하지 말라",
+      correctWord: "거짓 증거"
+    },
+    description: "5인 밧줄 스윙! 가짜 열쇠 함정을 뛰어넘어 공중의 [거짓 증거] 열쇠를 낚아채세요!",
+    spawnPoint: { x: 80, y: 384 },
+    ropeEnabled: true,
+    platforms: [
+      { x: 0, y: 420, width: 320, height: 300 },
+      { x: 420, y: 640, width: 440, height: 80 },
+      { x: 960, y: 420, width: 320, height: 300 }
+    ],
+    bridges: [],
+    switches: [],
+    pushBlocks: [],
+    keys: [
+      { x: 640, y: 380, word: "거짓 증거", isCorrect: true }, // 중앙 고공 스윙 열쇠
+      { x: 480, y: 590, word: "험담", isCorrect: false },
+      { x: 640, y: 590, word: "불평", isCorrect: false },
+      { x: 800, y: 590, word: "참소", isCorrect: false }
+    ],
+    key: { x: 640, y: 380 },
+    door: { x: 1140, y: 356 }
+  }),
+
+  // 제10계명: 네 이웃의 집을 [ 탐내지 ] 말라... (출애굽기 20:17)
+  (p) => ({
+    id: 59,
+    name: "STAGE 60 · [제10계명] 이웃의 것을 탐내지 말라 (FINAL)",
+    category: "십계명 특별",
+    requiredPlayers: 5,
+    isCommandment: true,
+    commandment: {
+      number: 10,
+      title: "제10계명",
+      scripture: "출애굽기 20:17",
+      blankVerse: "네 이웃의 집을 [  ? ? ?  ] 말라...",
+      fullVerse: "네 이웃의 집을 [ 탐내지 ] 말라...",
+      correctWord: "탐내지"
+    },
+    description: "십계명 대단원의 피날레! 5인 스위치+블록+탑 쌓기로 [탐내지]를 얻고 석판을 완성하세요!",
+    spawnPoint: { x: 80, y: 604 },
+    ropeEnabled: false,
+    platforms: [
+      { x: 0, y: 640, width: 1280, height: 80 },
+      { x: 480, y: 440, width: 320, height: 200 },
+      { x: 960, y: 320, width: 320, height: 320 }
+    ],
+    bridges: [
+      { x: 800, y: 440, width: 160, height: 24, triggerSwitchId: "sw-cmd10" }
+    ],
+    switches: [
+      { x: 160, y: 630, width: 50, targetId: "sw-cmd10" },
+      { x: 260, y: 630, width: 50, targetId: "sw-cmd10" },
+      { x: 360, y: 630, width: 50, targetId: "sw-cmd10" }
+    ],
+    pushBlocks: [
+      { x: 540, y: 360, width: 80, height: 80, requiredPushers: 2 }
+    ],
+    keys: [
+      { x: 640, y: 160, word: "탐내지", isCorrect: true }, // 최상단 천장 (탑 쌓기 필수)
+      { x: 220, y: 590, word: "빼앗지", isCorrect: false },
+      { x: 440, y: 590, word: "욕하지", isCorrect: false },
+      { x: 860, y: 590, word: "부수지", isCorrect: false }
+    ],
+    key: { x: 640, y: 160 },
+    door: { x: 1140, y: 256 }
   })
 ];
 
-export const TOTAL_STAGES = STAGE_DATABASE.length; // 50개!
+export const TOTAL_STAGES = STAGE_DATABASE.length; // 총 60개! (기존 50개 + 십계명 특별 10개)
 
-// 50개 전체 스테이지 요약 메타데이터 반환 (드롭다운 UI용)
+// 전체 스테이지 요약 메타데이터 반환 (드롭다운 UI용)
 export function getAllStageSummaries() {
   return STAGE_DATABASE.map((fn, idx) => {
-    const data = fn(2, "NORMAL");
+    const data = fn(5, "NORMAL");
     return {
       index: idx,
       id: idx + 1,
       name: data.name,
       category: data.category,
       requiredPlayers: data.requiredPlayers,
-      ropeEnabled: data.ropeEnabled
+      ropeEnabled: data.ropeEnabled,
+      isCommandment: !!data.isCommandment
     };
   });
 }

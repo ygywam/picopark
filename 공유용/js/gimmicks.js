@@ -3,12 +3,14 @@
 export class GimmickManager {
   constructor() {
     this.key = null;
+    this.keys = [];
     this.switches = [];
     this.pushBlocks = [];
     this.door = null;
     this.bridges = [];
     this.doorUnlocked = false;
     this.stageCleared = false;
+    this.onWrongKey = null; // 오답 열쇠 거부 시 콜백
   }
 
   // 스테이지 데이터로부터 기믹 초기화 및 인원수에 맞춘 동적 조정
@@ -16,15 +18,27 @@ export class GimmickManager {
     this.stageCleared = false;
     this.doorUnlocked = false;
 
-    // 1. 열쇠 초기화
-    this.key = {
-      x: stageData.key.x,
-      y: stageData.key.y,
+    // 1. 단어 열쇠 / 복수 열쇠 초기화 (십계명 특별 스테이지 및 일반 스테이지 완벽 호환)
+    const rawKeys = stageData.keys && stageData.keys.length > 0 
+      ? stageData.keys 
+      : [stageData.key];
+
+    this.keys = rawKeys.map((k, idx) => ({
+      id: idx,
+      x: k.x,
+      y: k.y,
+      origX: k.x,
+      origY: k.y,
       width: 28,
       height: 28,
+      word: k.word || "",
+      isCorrect: k.isCorrect !== undefined ? k.isCorrect : true,
       isCollected: false,
       holderId: null
-    };
+    }));
+
+    // 하위 호환 단일 key
+    this.key = this.keys[0];
 
     // 2. 동시 발판 스위치 초기화
     this.switches = (stageData.switches || []).map(sw => ({
@@ -150,42 +164,71 @@ export class GimmickManager {
       });
     });
 
-    // 3. 열쇠 획득 및 꼬리 추종 업데이트
-    if (!this.key.isCollected) {
-      playerList.forEach(p => {
-        if (
-          p.x < this.key.x + this.key.width &&
-          p.x + p.width > this.key.x &&
-          p.y < this.key.y + this.key.height &&
-          p.y + p.height > this.key.y
-        ) {
-          this.key.isCollected = true;
-          this.key.holderId = p.id;
-          if (sound) sound.playKeyCollect();
-        }
-      });
-    } else {
-      // 열쇠를 가진 플레이어 뒤를 부드럽게 추종
-      const holder = players.get(this.key.holderId);
-      if (holder) {
-        const targetX = holder.facing === 1 ? holder.x - 24 : holder.x + holder.width + 6;
-        const targetY = holder.y + 4 + Math.sin(Date.now() / 150) * 4;
-        this.key.x += (targetX - this.key.x) * 0.2;
-        this.key.y += (targetY - this.key.y) * 0.2;
+    // 3. 단어 열쇠 획득 및 꼬리 추종 업데이트 (복수 열쇠 및 가짜 열쇠 지원)
+    this.keys.forEach(k => {
+      if (!k.isCollected) {
+        // 이미 다른 열쇠를 소지한 플레이어는 제외
+        playerList.forEach(p => {
+          const isHoldingOther = this.keys.some(other => other.holderId === p.id);
+          if (!isHoldingOther) {
+            if (
+              p.x < k.x + k.width &&
+              p.x + p.width > k.x &&
+              p.y < k.y + k.height &&
+              p.y + p.height > k.y
+            ) {
+              k.isCollected = true;
+              k.holderId = p.id;
+              if (sound) sound.playKeyCollect();
+            }
+          }
+        });
+      } else {
+        // 열쇠를 가진 플레이어 뒤를 부드럽게 추종
+        const holder = players.get(k.holderId);
+        if (holder) {
+          const targetX = holder.facing === 1 ? holder.x - 26 : holder.x + holder.width + 6;
+          const targetY = holder.y + 2 + Math.sin(Date.now() / 150) * 4;
+          k.x += (targetX - k.x) * 0.22;
+          k.y += (targetY - k.y) * 0.22;
 
-        // 열쇠를 가진 플레이어가 문에 도달하면 문 개방!
-        if (
-          !this.doorUnlocked &&
-          holder.x + holder.width > this.door.x &&
-          holder.x < this.door.x + this.door.width &&
-          holder.y + holder.height > this.door.y &&
-          holder.y < this.door.y + this.door.height
-        ) {
-          this.doorUnlocked = true;
-          if (sound) sound.playSwitch();
+          // 열쇠를 소지한 플레이어가 문에 도달했을 때 판정!
+          if (
+            !this.doorUnlocked &&
+            holder.x + holder.width > this.door.x &&
+            holder.x < this.door.x + this.door.width &&
+            holder.y + holder.height > this.door.y &&
+            holder.y < this.door.y + this.door.height
+          ) {
+            if (k.isCorrect) {
+              // 정답 열쇠: 문 개방 성공!
+              this.doorUnlocked = true;
+              if (sound) sound.playKeyCollect();
+            } else {
+              // 가짜 열쇠: 문이 열리지 않고 거부 및 원래 자리로 튕겨남!
+              if (sound) sound.playSwitch();
+              if (this.onWrongKey) {
+                this.onWrongKey(k.word);
+              }
+              // 소유권 해제 및 원위치 복귀
+              k.isCollected = false;
+              k.holderId = null;
+              k.x = k.origX;
+              k.y = k.origY;
+            }
+          }
+        } else {
+          // 플레이어가 나가거나 사라지면 제자리 복귀
+          k.isCollected = false;
+          k.holderId = null;
+          k.x = k.origX;
+          k.y = k.origY;
         }
       }
-    }
+    });
+
+    // 하위 호환용 this.key 갱신
+    this.key = this.keys.find(k => k.isCollected) || this.keys[0];
 
     // 4. 문 도착 및 전원 탈출 체크
     if (this.doorUnlocked) {
@@ -269,37 +312,73 @@ export class GimmickManager {
     ctx.textAlign = "center";
     ctx.fillText(this.doorUnlocked ? "OPEN" : "LOCK", this.door.x + this.door.width / 2, this.door.y - 6);
 
-    // 5. 황금 열쇠 그리기
-    const k = this.key;
+    // 5. 단어 열쇠 / 황금 열쇠 그리기 (모든 열쇠 및 단어 카드 배지)
+    const keyList = this.keys && this.keys.length > 0 ? this.keys : [this.key];
     const bob = Math.sin(Date.now() / 180) * 3;
-    ctx.save();
-    ctx.translate(k.x + k.width / 2, k.y + k.height / 2 + bob);
 
-    ctx.fillStyle = "#facc15";
-    ctx.strokeStyle = "#ca8a04";
-    ctx.lineWidth = 2;
+    keyList.forEach(k => {
+      ctx.save();
+      ctx.translate(k.x + k.width / 2, k.y + k.height / 2 + bob);
 
-    // 열쇠 머리
-    ctx.beginPath();
-    ctx.arc(0, -4, 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+      // 열쇠 머리 위에 단어 배지 렌더링 (십계명 말씀 단어)
+      if (k.word) {
+        ctx.save();
+        ctx.font = "bold 13px sans-serif";
+        const textWidth = ctx.measureText(k.word).width;
+        const badgeW = textWidth + 14;
+        const badgeH = 22;
+        const badgeX = -badgeW / 2;
+        const badgeY = -34;
 
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(0, -4, 3, 0, Math.PI * 2);
-    ctx.fill();
+        // 배지 배경 그림자 및 본체
+        ctx.fillStyle = k.isCollected ? "#fef08a" : "#ffffff";
+        ctx.strokeStyle = k.isCollected ? "#eab308" : "#94a3b8";
+        ctx.lineWidth = 1.8;
 
-    // 열쇠 몸체와 이빨
-    ctx.beginPath();
-    ctx.moveTo(0, 4);
-    ctx.lineTo(0, 14);
-    ctx.moveTo(0, 10);
-    ctx.lineTo(4, 10);
-    ctx.moveTo(0, 14);
-    ctx.lineTo(4, 14);
-    ctx.stroke();
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 6);
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+          ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
+        }
 
-    ctx.restore();
+        // 단어 텍스트
+        ctx.fillStyle = "#0f172a";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(k.word, 0, badgeY + badgeH / 2);
+        ctx.restore();
+      }
+
+      ctx.fillStyle = "#facc15";
+      ctx.strokeStyle = "#ca8a04";
+      ctx.lineWidth = 2;
+
+      // 열쇠 머리
+      ctx.beginPath();
+      ctx.arc(0, -4, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(0, -4, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 열쇠 몸체와 이빨
+      ctx.beginPath();
+      ctx.moveTo(0, 4);
+      ctx.lineTo(0, 14);
+      ctx.moveTo(0, 10);
+      ctx.lineTo(4, 10);
+      ctx.moveTo(0, 14);
+      ctx.lineTo(4, 14);
+      ctx.stroke();
+
+      ctx.restore();
+    });
   }
 }
