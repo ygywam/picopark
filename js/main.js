@@ -514,7 +514,7 @@ class PicoParkApp {
     });
   }
 
-  // 실제 입장 로직 (방탄 코드 확인 및 TURN 릴레이 실시간 상태 피드백)
+  // 실제 입장 로직 (시간 제한 타이머 없는 무제한 대기 & 안정적 입장 보장)
   async doJoinRoom(targetCode, btnElement) {
     const nickname = (this.inputNickname.value || "").trim() || `학생${Math.floor(Math.random() * 89 + 10)}`;
 
@@ -536,12 +536,19 @@ class PicoParkApp {
       btnElement.disabled = true;
       btnElement.dataset.origText = btnElement.textContent;
       btnElement.textContent = "연결 시도 중...";
+      // 6초 후 사용자가 원하면 재시도할 수 있도록 버튼만 활성화 (진행은 백그라운드 유지)
+      setTimeout(() => {
+        if (this.gameState === "LOBBY" && btnElement) {
+          btnElement.disabled = false;
+          btnElement.textContent = "다시 연결 시도";
+        }
+      }, 6000);
     }
 
     const progressCallback = (msg) => {
       this.showToast(msg);
       if (btnElement) {
-        btnElement.textContent = msg.split(":")[0] || "연결 중...";
+        btnElement.textContent = msg;
       }
     };
 

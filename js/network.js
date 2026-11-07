@@ -1,5 +1,6 @@
 // 피코파크 웹 멀티플레이어 - WebRTC P2P 통신 모듈
 // 외부 서버 없이 브라우저 간 직접 연결(Peer-to-Peer DataChannel)
+// 시간 제한 타이머 없이 모든 학생이 끝까지 안정적으로 입장하도록 보장
 
 // 30가지 겹치지 않는 선명하고 예쁜 파스텔/비비드 색상 팔레트
 export const PLAYER_COLORS = [
@@ -11,10 +12,11 @@ export const PLAYER_COLORS = [
   "#60a5fa", "#34d399", "#a3e635", "#e879f9", "#2dd4bf"
 ];
 
-// 검증된 고속 공개 STUN 서버 풀 (더미/인증오류 없는 안전한 서버만 등록)
+// 검증된 고속 공개 STUN 서버 풀
 export const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:stun2.l.google.com:19302" },
   { urls: "stun:global.stun.twilio.com:3478" }
 ];
 
@@ -35,9 +37,6 @@ class NetworkManager {
     
     // 전체 참가자 목록 (호스트 포함): Map<id, { id, nickname, color, isHost, x, y, vx, vy, isGrounded, facing }
     this.players = new Map();
-
-    // 브로커 시그널링 세션 유지용 하트비트 타이머
-    this.heartbeatTimer = null;
 
     // 이벤트 리스너 콜백
     this.onLobbyUpdate = null;
@@ -96,24 +95,8 @@ class NetworkManager {
           facing: 1
         });
 
-        // 20초 주기 가벼운 하트비트로 브로커 세션 유지
-        if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
-        this.heartbeatTimer = setInterval(() => {
-          if (this.peer && !this.peer.destroyed && this.peer.disconnected) {
-            this.peer.reconnect();
-          }
-        }, 20000);
-
         resolve({ roomCode: this.roomCode, myId: this.myId });
         if (this.onLobbyUpdate) this.onLobbyUpdate(Array.from(this.players.values()));
-      });
-
-      // 브로커 끊김 시 자동 재연결
-      this.peer.on("disconnected", () => {
-        console.warn("[Network] 호스트가 시그널링 서버와 일시 단절됨. 자동 재연결 시도 중...");
-        if (this.peer && !this.peer.destroyed) {
-          this.peer.reconnect();
-        }
       });
 
       // 게스트 접속 수신
@@ -129,7 +112,7 @@ class NetworkManager {
     });
   }
 
-  // 게스트 연결 처리 (호스트 측)
+  // 게스트 연결 처리 (호스트 측 - 즉시/대기 연결 양방향 보장)
   handleGuestConnection(conn) {
     const bindGuestEvents = () => {
       // 30인 초과 여부 확인
@@ -148,12 +131,11 @@ class NetworkManager {
       });
 
       conn.on("error", (err) => {
-        console.warn("게스트 연결 경고:", err);
+        console.warn("게스트 연결 알림:", err);
         this.removeGuest(conn.peer);
       });
     };
 
-    // DataChannel이 이미 열려 있는 경우 즉시 바인딩, 아니면 open 이벤트 대기
     if (conn.open) {
       bindGuestEvents();
     } else {
@@ -167,7 +149,7 @@ class NetworkManager {
 
     switch (data.type) {
       case "join_req": {
-        // 이미 등록된 게스트라면 환영 응답 재전송 (중복 패킷 방어)
+        // 이미 등록된 게스트라면 환영 응답 재전송 (재시도 패킷 방어)
         if (this.players.has(conn.peer)) {
           const existing = this.players.get(conn.peer);
           conn.send({
@@ -234,7 +216,7 @@ class NetworkManager {
     }
   }
 
-  // 방 참가하기 (게스트 - 여유로운 협상 대기 및 안정적 핸드셰이크)
+  // 방 참가하기 (게스트 - 시간 제한 타이머 없이 끝까지 대기 & 응답 올 때까지 재시도)
   joinRoom(roomCode, nickname, onProgress = null) {
     return new Promise((resolve, reject) => {
       // 기존 연결 정리
@@ -250,16 +232,7 @@ class NetworkManager {
       let isFinished = false;
       let retryTimer = null;
 
-      // 25초 여유로운 연결 타임아웃
-      const timer = setTimeout(() => {
-        if (!isFinished) {
-          isFinished = true;
-          if (retryTimer) clearInterval(retryTimer);
-          reject(new Error("선생님 방과의 연결 시간이 초과되었습니다. 방 코드가 정확한지 확인해 주세요."));
-        }
-      }, 25000);
-
-      if (onProgress) onProgress("1단계: 통신 서버에 연결 중...");
+      if (onProgress) onProgress("선생님 방에 연결하고 있습니다...");
 
       // @ts-ignore
       this.peer = new window.Peer(null, {
@@ -273,7 +246,7 @@ class NetworkManager {
         if (isFinished) return;
         this.myId = id;
 
-        if (onProgress) onProgress(`2단계: 선생님 방(${this.roomCode}) 찾는 중...`);
+        if (onProgress) onProgress(`선생님 방(${this.roomCode})에 입장 요청 중...`);
 
         // 호스트에게 연결 시도
         this.hostConnection = this.peer.connect(hostPeerId, { reliable: true });
@@ -287,70 +260,53 @@ class NetworkManager {
           }
         };
 
-        const onChannelReady = () => {
-          if (onProgress) onProgress("3단계: 입장 신호 전송 중...");
+        const onConnected = () => {
           sendJoinReq();
 
-          // 응답 받을 때까지 1.5초마다 최대 4회 재전송
-          let attempts = 0;
+          // 방장의 환영 응답(join_res)이 올 때까지 2초마다 가볍게 재전송 (패킷 유실 완벽 방지)
           if (retryTimer) clearInterval(retryTimer);
           retryTimer = setInterval(() => {
-            if (isFinished || attempts >= 4) {
+            if (isFinished) {
               if (retryTimer) clearInterval(retryTimer);
               return;
             }
-            attempts++;
             sendJoinReq();
-          }, 1500);
+          }, 2000);
         };
 
         if (this.hostConnection.open) {
-          onChannelReady();
+          onConnected();
         } else {
-          this.hostConnection.on("open", onChannelReady);
+          this.hostConnection.on("open", onConnected);
         }
 
         this.hostConnection.on("data", (data) => {
           if (!isFinished && data.type === "join_res") {
-            clearTimeout(timer);
             if (retryTimer) clearInterval(retryTimer);
             isFinished = true;
           }
           this.handleMessageFromHost(data, resolve, reject);
         });
 
-        // hostConnection의 경고성 에러는 콘솔에만 남기고 조기 종료하지 않음
-        this.hostConnection.on("error", (err) => {
-          console.warn("데이터채널 상태 알림 (진행 중):", err);
-        });
-
         this.hostConnection.on("close", () => {
           if (!isFinished) {
-            clearTimeout(timer);
             if (retryTimer) clearInterval(retryTimer);
             isFinished = true;
-            reject(new Error("선생님 방과의 연결이 닫혔습니다."));
+            reject(new Error("선생님 방과의 연결이 닫혔습니다. 다시 시도해 주세요."));
           } else {
             if (this.onError) this.onError(new Error("선생님 방과의 연결이 끊어졌습니다."));
           }
         });
       });
 
-      this.peer.on("disconnected", () => {
-        if (this.peer && !this.peer.destroyed) {
-          this.peer.reconnect();
-        }
-      });
-
       this.peer.on("error", (err) => {
         console.error("PeerJS 참가 에러:", err);
         if (!isFinished) {
-          clearTimeout(timer);
           if (retryTimer) clearInterval(retryTimer);
           isFinished = true;
           let msg = "방에 입장할 수 없습니다.";
           if (err.type === "peer-unavailable") {
-            msg = `선생님 방(${this.roomCode})을 찾을 수 없습니다. 초대 코드를 다시 확인해 주세요.`;
+            msg = `선생님 방(${this.roomCode})을 찾을 수 없습니다. 칠판의 코드를 확인해 주세요.`;
           } else if (err.message) {
             msg = `입장 실패: ${err.message}`;
           }
