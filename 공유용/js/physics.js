@@ -78,13 +78,8 @@ export class PhysicsEngine {
       player.vx = 0;
     }
 
-    // 7. 절대 바닥 관통 차단 (바닥 y=640 뚫림 방지)
-    const floorLimit = 640 - player.height;
-    if (player.y > floorLimit) {
-      player.y = floorLimit;
-      player.vy = 0;
-      player.isGrounded = true;
-    }
+    // 7. 낭떠러지/계곡 낙하 허용 (절대 바닥 640 인위적 차단 제거)
+    // 개별 플랫폼 충돌은 5번에서 정상 처리되며, 화면 밖(y > 720)으로 추락 시 main.js에서 스폰 복귀 처리됨
   }
 
   // 플레이어 간 로프(인간 밧줄/번지점프) 물리 연산

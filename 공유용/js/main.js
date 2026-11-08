@@ -945,6 +945,11 @@ class PicoParkApp {
     const amIActive = this.activePlayerIds.size === 0 || this.activePlayerIds.has(network.myId);
     if (myPlayer && amIActive) {
       PhysicsEngine.updatePlayer(myPlayer, allPlatforms, keyInput);
+
+      // 낭떠러지/화면 아래(y > 720)로 낙하 시 스폰 지점으로 복귀
+      if (myPlayer.y > 720) {
+        this.handlePlayerFall(myPlayer);
+      }
     }
 
     // 2. 머리 위 스택킹 판정 (출전 선수들끼리)
@@ -971,6 +976,13 @@ class PicoParkApp {
 
     // 5. 호스트 권위 물리 연산 및 기믹 동기화
     if (network.isHost) {
+      // 출전 선수들 낙하 체크
+      activePlayerList.forEach(p => {
+        if (p.y > 720) {
+          this.handlePlayerFall(p);
+        }
+      });
+
       // 출전 선수들 기준으로 기믹 업데이트
       const activeMap = new Map();
       activePlayerList.forEach(p => activeMap.set(p.id, p));
@@ -1321,6 +1333,35 @@ class PicoParkApp {
       ctx.fillStyle = "#64748b";
       ctx.font = "16px sans-serif";
       ctx.fillText("최고의 팀워크를 보여준 학생들에게 박수를 보냅니다.", this.canvas.width / 2, this.canvas.height / 2 + 65);
+    }
+  }
+
+  // 낭떠러지/화면 밖 낙하 처리 (스폰 지점으로 안전 복귀)
+  handlePlayerFall(player) {
+    if (!this.currentStage || !player) return;
+    const sp = this.currentStage.spawnPoint;
+
+    if (this.currentStage.ropeEnabled) {
+      // 밧줄로 묶인 경우 전원 스폰 지점에 나란히 재배치하여 엉킴 방지
+      let idx = 0;
+      network.players.forEach(p => {
+        p.x = sp.x + (idx * 38);
+        p.y = sp.y;
+        p.vx = 0;
+        p.vy = 0;
+        p.isGrounded = true;
+        idx++;
+      });
+      sound.playFall();
+      this.showToast("낭떠러지로 추락했습니다! 스폰 지점으로 복귀합니다.");
+    } else {
+      player.x = sp.x;
+      player.y = sp.y;
+      player.vx = 0;
+      player.vy = 0;
+      player.isGrounded = true;
+      sound.playFall();
+      this.showToast("낭떠러지로 추락했습니다! 스폰 지점으로 복귀합니다.");
     }
   }
 

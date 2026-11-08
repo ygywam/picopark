@@ -94,22 +94,22 @@ const STAGE_DATABASE = [
     name: "STAGE 3 · 거대 블록과 디딤돌",
     category: "2인 듀오",
     requiredPlayers: 2,
-    description: "함께 힘을 합쳐 거대 블록을 밀고, 먼저 오른 친구가 문 앞 스위치로 디딤돌을 내려주세요!",
+    description: "함께 힘을 합쳐 거대 블록으로 낭떠러지를 메우고, 먼저 오른 친구가 문 앞 스위치로 디딤돌을 내려주세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
       { x: 0, y: 640, width: 500, height: 80 },
-      { x: 780, y: 640, width: 500, height: 80 },
-      { x: 1050, y: 460, width: 230, height: 180 }
+      { x: 660, y: 640, width: 380, height: 80 },
+      { x: 1040, y: 460, width: 240, height: 180 }
     ],
-    pushBlocks: [{ x: 380, y: 568, width: 72, height: 72, requiredPushers: 2 }],
+    pushBlocks: [{ x: 340, y: 544, width: 150, height: 96, requiredPushers: 2 }],
     bridges: [
-      { x: 920, y: 550, width: 100, height: 20, triggerSwitchId: "sw-s3-step" }
+      { x: 940, y: 550, width: 90, height: 20, triggerSwitchId: "sw-s3-step" }
     ],
     switches: [
       { x: 1080, y: 450, targetId: "sw-s3-step", width: 50 }
     ],
-    key: { x: 620, y: 480 },
+    key: { x: 580, y: 460 },
     door: { x: 1160, y: 396 }
   }),
 
@@ -350,7 +350,7 @@ const STAGE_DATABASE = [
     name: "STAGE 14 · 3인 협동 블록 밀기",
     category: "3인 삼총사",
     requiredPlayers: 3,
-    description: "3명이 힘을 합쳐 커다란 블록을 밀고, 먼저 오른 친구가 문 앞 스위치로 디딤돌을 내려주세요!",
+    description: "혼자서는 절대 못 미는 육중한 바위를 3명이 함께 벽 끝까지 밀어 디딤돌 삼아 문으로 올라가세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -358,12 +358,8 @@ const STAGE_DATABASE = [
       { x: 960, y: 440, width: 320, height: 200 }
     ],
     pushBlocks: [{ x: 480, y: 568, width: 90, height: 72, requiredPushers: 3 }],
-    bridges: [
-      { x: 820, y: 540, width: 120, height: 20, triggerSwitchId: "sw-s14-step" }
-    ],
-    switches: [
-      { x: 1000, y: 430, targetId: "sw-s14-step", width: 50 }
-    ],
+    bridges: [],
+    switches: [],
     key: { x: 740, y: 500 },
     door: { x: 1140, y: 376 }
   }),
@@ -456,9 +452,8 @@ const STAGE_DATABASE = [
       { x: 640, y: 380, width: 440, height: 20 }
     ],
     bridges: [
-      { x: 100, y: 570, width: 80, height: 20, triggerSwitchId: "sw-3p-zig" },
-      { x: 480, y: 560, width: 100, height: 20, triggerSwitchId: "sw-3p-zig" },
-      { x: 560, y: 440, width: 80, height: 20, triggerSwitchId: "sw-3p-zig" }
+      { x: 140, y: 560, width: 60, height: 20, triggerSwitchId: "sw-3p-zig" },
+      { x: 580, y: 440, width: 60, height: 20, triggerSwitchId: "sw-3p-zig" }
     ],
     switches: [
       { x: 240, y: 490, targetId: "sw-3p-zig", width: 50 },
@@ -509,8 +504,7 @@ const STAGE_DATABASE = [
       { x: 840, y: 550, width: 80, height: 20, triggerSwitchId: "sw-tri-master" }
     ],
     switches: [
-      { x: 620, y: 630, targetId: "sw-tri-master", width: 54 },
-      { x: 960, y: 450, targetId: "sw-tri-master", width: 54 }
+      { x: 620, y: 630, targetId: "sw-tri-master", width: 54 }
     ],
     pushBlocks: [],
     key: { x: 670, y: 570 },
@@ -571,7 +565,7 @@ const STAGE_DATABASE = [
     name: "STAGE 23 · 4인 초대형 블록 밀기",
     category: "4인 스쿼드",
     requiredPlayers: 4,
-    description: "4명이 힘을 합쳐 초대형 블록을 밀고, 먼저 오른 친구가 문 앞 스위치로 디딤돌을 내려주세요!",
+    description: "4명이 힘을 합쳐 초대형 블록을 벽 끝까지 밀고, 블록 위를 디딤돌 삼아 절벽 위 문으로 탈출하세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -579,13 +573,8 @@ const STAGE_DATABASE = [
       { x: 960, y: 420, width: 320, height: 220 }
     ],
     pushBlocks: [{ x: 440, y: 548, width: 110, height: 92, requiredPushers: 4 }],
-    bridges: [
-      { x: 740, y: 560, width: 90, height: 20, triggerSwitchId: "sw-s23-step" },
-      { x: 850, y: 490, width: 90, height: 20, triggerSwitchId: "sw-s23-step" }
-    ],
-    switches: [
-      { x: 980, y: 410, targetId: "sw-s23-step", width: 50 }
-    ],
+    bridges: [],
+    switches: [],
     key: { x: 740, y: 480 },
     door: { x: 1140, y: 356 }
   }),
@@ -747,8 +736,7 @@ const STAGE_DATABASE = [
       { x: 860, y: 550, width: 80, height: 20, triggerSwitchId: "sw-4p-master" }
     ],
     switches: [
-      { x: 620, y: 630, targetId: "sw-4p-master", width: 60 },
-      { x: 980, y: 450, targetId: "sw-4p-master", width: 60 }
+      { x: 620, y: 630, targetId: "sw-4p-master", width: 60 }
     ],
     pushBlocks: [{ x: 500, y: 568, width: 80, height: 72, requiredPushers: 3 }],
     key: { x: 640, y: 520 },
@@ -811,7 +799,7 @@ const STAGE_DATABASE = [
     name: "STAGE 33 · 5인 거대 철문 밀기",
     category: "5~6인 모둠",
     requiredPlayers: 5,
-    description: "5명이 일제히 블록을 밀어 올린 뒤, 먼저 올라간 친구가 문 앞 스위치로 디딤돌을 내려주세요!",
+    description: "5명이 일제히 거대 철문 블록을 벽 끝까지 밀어올려, 블록 위를 밟고 절벽 위 문으로 탈출하세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -819,13 +807,8 @@ const STAGE_DATABASE = [
       { x: 960, y: 420, width: 320, height: 220 }
     ],
     pushBlocks: [{ x: 460, y: 528, width: 130, height: 112, requiredPushers: 5 }],
-    bridges: [
-      { x: 740, y: 560, width: 90, height: 20, triggerSwitchId: "sw-s33-step" },
-      { x: 840, y: 490, width: 90, height: 20, triggerSwitchId: "sw-s33-step" }
-    ],
-    switches: [
-      { x: 980, y: 410, targetId: "sw-s33-step", width: 50 }
-    ],
+    bridges: [],
+    switches: [],
     key: { x: 760, y: 480 },
     door: { x: 1140, y: 356 }
   }),
@@ -894,9 +877,7 @@ const STAGE_DATABASE = [
     ],
     switches: [
       { x: 100, y: 630, targetId: "sw-6p-t1", width: 50 },
-      { x: 400, y: 490, targetId: "sw-6p-t2", width: 50 },
-      { x: 740, y: 350, targetId: "sw-6p-t1", width: 44 },
-      { x: 820, y: 350, targetId: "sw-6p-t2", width: 44 }
+      { x: 400, y: 490, targetId: "sw-6p-t2", width: 50 }
     ],
     pushBlocks: [],
     key: { x: 760, y: 300 },
@@ -956,26 +937,21 @@ const STAGE_DATABASE = [
     name: "STAGE 39 · 6인 메가 블록 장벽",
     category: "5~6인 모둠",
     requiredPlayers: 6,
-    description: "블록을 밀어 절벽에 오른 뒤, 먼저 올라간 친구가 문 앞 스위치를 밟아 중간 디딤돌을 내려주세요!",
+    description: "두 개의 거대 블록을 나누어 벽 끝까지 밀고, 블록 위를 밟고 높은 장벽을 넘으세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
       { x: 0, y: 640, width: 1280, height: 80 },
-      { x: 940, y: 380, width: 340, height: 260 }
+      { x: 940, y: 420, width: 340, height: 220 }
     ],
     pushBlocks: [
       { x: 360, y: 568, width: 72, height: 72, requiredPushers: 3 },
       { x: 580, y: 568, width: 72, height: 72, requiredPushers: 3 }
     ],
-    bridges: [
-      { x: 740, y: 550, width: 90, height: 20, triggerSwitchId: "sw-s39-step" },
-      { x: 840, y: 460, width: 90, height: 20, triggerSwitchId: "sw-s39-step" }
-    ],
-    switches: [
-      { x: 1000, y: 370, targetId: "sw-s39-step", width: 50 }
-    ],
+    bridges: [],
+    switches: [],
     key: { x: 740, y: 460 },
-    door: { x: 1140, y: 316 }
+    door: { x: 1140, y: 356 }
   }),
 
   (p) => ({
@@ -996,8 +972,7 @@ const STAGE_DATABASE = [
       { x: 840, y: 550, width: 80, height: 20, triggerSwitchId: "sw-6p-final" }
     ],
     switches: [
-      { x: 620, y: 630, targetId: "sw-6p-final", width: 60 },
-      { x: 960, y: 450, targetId: "sw-6p-final", width: 60 }
+      { x: 620, y: 630, targetId: "sw-6p-final", width: 60 }
     ],
     pushBlocks: [{ x: 520, y: 568, width: 80, height: 72, requiredPushers: 4 }],
     key: { x: 660, y: 520 },
@@ -1086,7 +1061,7 @@ const STAGE_DATABASE = [
     name: "STAGE 44 · 학급 총력전 메가 블록",
     category: "학급 올스타",
     requiredPlayers: Math.min(8, p),
-    description: "반 전체가 한꺼번에 달려들어 밀어야 움직이는 거대한 전설의 골리앗 블록!",
+    description: "반 전체가 한꺼번에 달려들어 골리앗 블록을 벽 끝까지 밀고, 거대 블록을 디딤돌 삼아 문으로 올라가세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -1094,13 +1069,8 @@ const STAGE_DATABASE = [
       { x: 980, y: 380, width: 300, height: 260 }
     ],
     pushBlocks: [{ x: 440, y: 508, width: 150, height: 132, requiredPushers: Math.max(4, Math.floor(p * 0.6)) }],
-    bridges: [
-      { x: 740, y: 550, width: 100, height: 20, triggerSwitchId: "sw-s44-step" },
-      { x: 860, y: 460, width: 100, height: 20, triggerSwitchId: "sw-s44-step" }
-    ],
-    switches: [
-      { x: 1020, y: 370, targetId: "sw-s44-step", width: 50 }
-    ],
+    bridges: [],
+    switches: [],
     key: { x: 760, y: 440 },
     door: { x: 1140, y: 316 }
   }),
@@ -1126,9 +1096,7 @@ const STAGE_DATABASE = [
     ],
     switches: [
       { x: 80, y: 630, targetId: "sw-all-t1", width: 44 },
-      { x: 240, y: 490, targetId: "sw-all-t2", width: 44 },
-      { x: 760, y: 250, targetId: "sw-all-t1", width: 44 },
-      { x: 820, y: 250, targetId: "sw-all-t2", width: 44 }
+      { x: 240, y: 490, targetId: "sw-all-t2", width: 44 }
     ],
     pushBlocks: [],
     key: { x: 840, y: 200 },
@@ -1247,8 +1215,7 @@ const STAGE_DATABASE = [
       { x: 860, y: 550, width: 80, height: 20, triggerSwitchId: "sw-grand-final" }
     ],
     switches: [
-      { x: 640, y: 630, targetId: "sw-grand-final", width: 70 },
-      { x: 980, y: 450, targetId: "sw-grand-final", width: 60 }
+      { x: 640, y: 630, targetId: "sw-grand-final", width: 70 }
     ],
     pushBlocks: [{ x: 500, y: 548, width: 100, height: 92, requiredPushers: Math.max(4, Math.floor(p * 0.5)) }],
     key: { x: 640, y: 500 },
@@ -1310,7 +1277,7 @@ const STAGE_DATABASE = [
       fullVerse: "너를 위하여 새긴 [ 우상 ]을 만들지 말고...",
       correctWord: "우상"
     },
-    description: "5명이 힘을 합쳐 거대 블록을 밀어내고 뒤에 숨겨진 정답 열쇠 [우상]을 찾으세요!",
+    description: "5명이 힘을 합쳐 거대 블록을 밀어 숨겨진 [우상] 열쇠를 찾고, 블록을 밟고 넘어가 문으로 가세요!",
     spawnPoint: { x: 100, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -1318,13 +1285,8 @@ const STAGE_DATABASE = [
       { x: 680, y: 460, width: 200, height: 180 },
       { x: 1020, y: 500, width: 260, height: 140 }
     ],
-    bridges: [
-      { x: 920, y: 570, width: 90, height: 20, triggerSwitchId: "sw-cmd2-step" },
-      { x: 570, y: 550, width: 90, height: 20, triggerSwitchId: "sw-cmd2-step" }
-    ],
-    switches: [
-      { x: 1050, y: 490, targetId: "sw-cmd2-step", width: 50 }
-    ],
+    bridges: [],
+    switches: [],
     pushBlocks: [
       { x: 440, y: 544, width: 110, height: 96, requiredPushers: 5 } // 5명이 함께 밀어야 이동!
     ],
@@ -1399,21 +1361,18 @@ const STAGE_DATABASE = [
       fullVerse: "[ 안식일 ]을 기억하여 거룩하게 지키라",
       correctWord: "안식일"
     },
-    description: "5인 피코 밧줄 번지점프! 절벽 아래 깊은 계곡 속 진짜 열쇠 [안식일]을 낚아채세요!",
+    description: "5인 피코 밧줄 번지점프! 절벽 아래 계곡 속 [안식일] 열쇠를 낚아채고, 스위치를 밟아 하늘 다리를 완성하세요!",
     spawnPoint: { x: 100, y: 384 },
     ropeEnabled: true,
     platforms: [
       { x: 0, y: 420, width: 360, height: 300 },
-      { x: 920, y: 420, width: 360, height: 300 },
-      { x: 440, y: 680, width: 400, height: 40 }
+      { x: 920, y: 420, width: 360, height: 300 }
     ],
     bridges: [
-      { x: 840, y: 600, width: 70, height: 20, triggerSwitchId: "sw-cmd4-stairs" },
-      { x: 860, y: 510, width: 60, height: 20, triggerSwitchId: "sw-cmd4-stairs" }
+      { x: 360, y: 420, width: 560, height: 24, triggerSwitchId: "sw-cmd4-bridge" }
     ],
     switches: [
-      { x: 480, y: 670, targetId: "sw-cmd4-stairs", width: 50 },
-      { x: 960, y: 410, targetId: "sw-cmd4-stairs", width: 50 }
+      { x: 260, y: 410, targetId: "sw-cmd4-bridge", width: 54 }
     ],
     pushBlocks: [],
     keys: [
@@ -1450,7 +1409,6 @@ const STAGE_DATABASE = [
       { x: 560, y: 220, width: 160, height: 24 }
     ],
     bridges: [
-      { x: 150, y: 530, width: 90, height: 20, triggerSwitchId: "sw-cmd5" },
       { x: 260, y: 420, width: 180, height: 24, triggerSwitchId: "sw-cmd5" }
     ],
     switches: [
@@ -1483,7 +1441,7 @@ const STAGE_DATABASE = [
       fullVerse: "[ 살인 ]하지 말라",
       correctWord: "살인"
     },
-    description: "5단 인간 사다리 릴레이! 서로 디딤돌이 되어 꼭대기의 [살인] 열쇠를 획득하세요!",
+    description: "5단 인간 사다리 릴레이! 차례대로 기둥을 뛰어넘어 꼭대기의 [살인] 열쇠를 획득하세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -1493,16 +1451,8 @@ const STAGE_DATABASE = [
       { x: 820, y: 280, width: 180, height: 440 },
       { x: 1040, y: 160, width: 240, height: 560 }
     ],
-    bridges: [
-      { x: 340, y: 580, width: 40, height: 20, triggerSwitchId: "sw-cmd6-all" },
-      { x: 560, y: 460, width: 40, height: 20, triggerSwitchId: "sw-cmd6-all" },
-      { x: 780, y: 340, width: 40, height: 20, triggerSwitchId: "sw-cmd6-all" },
-      { x: 1000, y: 220, width: 40, height: 20, triggerSwitchId: "sw-cmd6-all" }
-    ],
-    switches: [
-      { x: 280, y: 630, width: 50, targetId: "sw-cmd6-all" },
-      { x: 1080, y: 150, width: 50, targetId: "sw-cmd6-all" }
-    ],
+    bridges: [],
+    switches: [],
     pushBlocks: [],
     keys: [
       { x: 1160, y: 100, word: "살인", isCorrect: true }, // 꼭대기 층
@@ -1572,7 +1522,7 @@ const STAGE_DATABASE = [
       fullVerse: "[ 도둑질 ]하지 말라",
       correctWord: "도둑질"
     },
-    description: "2개의 거대 금고 블록을 5명이 협력하여 이동시키고 정답 열쇠 [도둑질]을 구하세요!",
+    description: "2개의 거대 금고 블록을 벽 끝까지 밀어 계단을 만들고 정답 열쇠 [도둑질]을 구하세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -1580,13 +1530,8 @@ const STAGE_DATABASE = [
       { x: 780, y: 440, width: 220, height: 200 },
       { x: 1040, y: 300, width: 240, height: 340 }
     ],
-    bridges: [
-      { x: 680, y: 540, width: 90, height: 20, triggerSwitchId: "sw-cmd8-step" },
-      { x: 990, y: 370, width: 50, height: 20, triggerSwitchId: "sw-cmd8-step" }
-    ],
-    switches: [
-      { x: 1070, y: 290, targetId: "sw-cmd8-step", width: 50 }
-    ],
+    bridges: [],
+    switches: [],
     pushBlocks: [
       { x: 320, y: 554, width: 86, height: 86, requiredPushers: 3 },
       { x: 540, y: 554, width: 86, height: 86, requiredPushers: 2 }
@@ -1672,8 +1617,7 @@ const STAGE_DATABASE = [
     switches: [
       { x: 160, y: 630, width: 50, targetId: "sw-cmd10" },
       { x: 260, y: 630, width: 50, targetId: "sw-cmd10" },
-      { x: 360, y: 630, width: 50, targetId: "sw-cmd10" },
-      { x: 1000, y: 310, width: 50, targetId: "sw-cmd10" }
+      { x: 360, y: 630, width: 50, targetId: "sw-cmd10" }
     ],
     pushBlocks: [
       { x: 540, y: 360, width: 80, height: 80, requiredPushers: 2 }

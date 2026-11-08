@@ -592,6 +592,30 @@ class SoundManager {
       osc.stop(now + 0.4);
     });
   }
+
+  // 낭떠러지 낙하/추락 효과음 (만화 같은 휘익~ 하강음)
+  playFall() {
+    if (this.isMuted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const now = this.ctx.currentTime;
+
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(450, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+
+    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain || this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.3);
+  }
 }
 
 export const sound = new SoundManager();
