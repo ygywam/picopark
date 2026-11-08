@@ -94,7 +94,7 @@ const STAGE_DATABASE = [
     name: "STAGE 3 · 거대 블록과 디딤돌",
     category: "2인 듀오",
     requiredPlayers: 2,
-    description: "함께 힘을 합쳐 거대 블록을 밀어 낭떠러지를 메우고 높은 문으로 올라가세요!",
+    description: "함께 힘을 합쳐 거대 블록을 밀고, 먼저 오른 친구가 문 앞 스위치로 디딤돌을 내려주세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -103,8 +103,12 @@ const STAGE_DATABASE = [
       { x: 1050, y: 460, width: 230, height: 180 }
     ],
     pushBlocks: [{ x: 380, y: 568, width: 72, height: 72, requiredPushers: 2 }],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 920, y: 550, width: 100, height: 20, triggerSwitchId: "sw-s3-step" }
+    ],
+    switches: [
+      { x: 1080, y: 450, targetId: "sw-s3-step", width: 50 }
+    ],
     key: { x: 620, y: 480 },
     door: { x: 1160, y: 396 }
   }),
@@ -224,7 +228,7 @@ const STAGE_DATABASE = [
     name: "STAGE 9 · 다단 블록 장벽",
     category: "2인 듀오",
     requiredPlayers: 2,
-    description: "무거운 거대 블록을 함께 밀어 계단을 만들고 높은 문으로 가세요!",
+    description: "블록을 밀어 절벽에 오른 뒤, 먼저 올라간 친구가 문 앞 스위치를 밟아 중간 디딤돌을 내려주세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -235,8 +239,13 @@ const STAGE_DATABASE = [
       { x: 400, y: 568, width: 72, height: 72, requiredPushers: 2 },
       { x: 600, y: 568, width: 72, height: 72, requiredPushers: 2 }
     ],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 740, y: 560, width: 90, height: 20, triggerSwitchId: "sw-s9-step" },
+      { x: 830, y: 480, width: 90, height: 20, triggerSwitchId: "sw-s9-step" }
+    ],
+    switches: [
+      { x: 980, y: 390, targetId: "sw-s9-step", width: 50 }
+    ],
     key: { x: 620, y: 460 },
     door: { x: 1120, y: 336 }
   }),
@@ -255,8 +264,15 @@ const STAGE_DATABASE = [
       { x: 140, y: 480, width: 440, height: 24 },
       { x: 680, y: 320, width: 600, height: 24 }
     ],
-    bridges: [{ x: 580, y: 480, width: 100, height: 24, triggerSwitchId: "sw-tower-2p" }],
-    switches: [{ x: 260, y: 470, targetId: "sw-tower-2p", width: 54 }],
+    bridges: [
+      { x: 580, y: 480, width: 100, height: 24, triggerSwitchId: "sw-tower-2p" },
+      { x: 60, y: 560, width: 80, height: 20, triggerSwitchId: "sw-tower-2p" },
+      { x: 620, y: 400, width: 60, height: 20, triggerSwitchId: "sw-tower-2p" }
+    ],
+    switches: [
+      { x: 260, y: 470, targetId: "sw-tower-2p", width: 54 },
+      { x: 740, y: 310, targetId: "sw-tower-2p", width: 54 }
+    ],
     pushBlocks: [{ x: 800, y: 248, width: 72, height: 72, requiredPushers: 2 }],
     key: { x: 480, y: 410 },
     door: { x: 1140, y: 256 }
@@ -334,7 +350,7 @@ const STAGE_DATABASE = [
     name: "STAGE 14 · 3인 협동 블록 밀기",
     category: "3인 삼총사",
     requiredPlayers: 3,
-    description: "혼자서는 절대 못 미는 육중한 바위를 세 명이 동시에 달라붙어 밀어내세요!",
+    description: "3명이 힘을 합쳐 커다란 블록을 밀고, 먼저 오른 친구가 문 앞 스위치로 디딤돌을 내려주세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -342,8 +358,12 @@ const STAGE_DATABASE = [
       { x: 960, y: 440, width: 320, height: 200 }
     ],
     pushBlocks: [{ x: 480, y: 568, width: 90, height: 72, requiredPushers: 3 }],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 820, y: 540, width: 120, height: 20, triggerSwitchId: "sw-s14-step" }
+    ],
+    switches: [
+      { x: 1000, y: 430, targetId: "sw-s14-step", width: 50 }
+    ],
     key: { x: 740, y: 500 },
     door: { x: 1140, y: 376 }
   }),
@@ -368,7 +388,9 @@ const STAGE_DATABASE = [
     ],
     switches: [
       { x: 100, y: 630, targetId: "sw-3p-lift1", width: 50 },
-      { x: 420, y: 490, targetId: "sw-3p-lift2", width: 50 }
+      { x: 420, y: 490, targetId: "sw-3p-lift2", width: 50 },
+      { x: 740, y: 350, targetId: "sw-3p-lift1", width: 50 },
+      { x: 820, y: 350, targetId: "sw-3p-lift2", width: 50 }
     ],
     pushBlocks: [],
     key: { x: 800, y: 300 },
@@ -433,8 +455,15 @@ const STAGE_DATABASE = [
       { x: 200, y: 500, width: 440, height: 20 },
       { x: 640, y: 380, width: 440, height: 20 }
     ],
-    bridges: [{ x: 480, y: 560, width: 100, height: 20, triggerSwitchId: "sw-3p-zig" }],
-    switches: [{ x: 240, y: 490, targetId: "sw-3p-zig", width: 50 }],
+    bridges: [
+      { x: 100, y: 570, width: 80, height: 20, triggerSwitchId: "sw-3p-zig" },
+      { x: 480, y: 560, width: 100, height: 20, triggerSwitchId: "sw-3p-zig" },
+      { x: 560, y: 440, width: 80, height: 20, triggerSwitchId: "sw-3p-zig" }
+    ],
+    switches: [
+      { x: 240, y: 490, targetId: "sw-3p-zig", width: 50 },
+      { x: 800, y: 370, targetId: "sw-3p-zig", width: 50 }
+    ],
     pushBlocks: [],
     key: { x: 720, y: 320 },
     door: { x: 1000, y: 316 }
@@ -475,8 +504,14 @@ const STAGE_DATABASE = [
       { x: 500, y: 640, width: 340, height: 80 },
       { x: 920, y: 460, width: 360, height: 260 }
     ],
-    bridges: [{ x: 380, y: 460, width: 540, height: 24, triggerSwitchId: "sw-tri-master" }],
-    switches: [{ x: 620, y: 630, targetId: "sw-tri-master", width: 54 }],
+    bridges: [
+      { x: 380, y: 460, width: 540, height: 24, triggerSwitchId: "sw-tri-master" },
+      { x: 840, y: 550, width: 80, height: 20, triggerSwitchId: "sw-tri-master" }
+    ],
+    switches: [
+      { x: 620, y: 630, targetId: "sw-tri-master", width: 54 },
+      { x: 960, y: 450, targetId: "sw-tri-master", width: 54 }
+    ],
     pushBlocks: [],
     key: { x: 670, y: 570 },
     door: { x: 1140, y: 396 }
@@ -536,7 +571,7 @@ const STAGE_DATABASE = [
     name: "STAGE 23 · 4인 초대형 블록 밀기",
     category: "4인 스쿼드",
     requiredPlayers: 4,
-    description: "무게 4배의 거대 장벽 블록! 4명 전원이 어깨를 맞대고 밀어야 움직입니다!",
+    description: "4명이 힘을 합쳐 초대형 블록을 밀고, 먼저 오른 친구가 문 앞 스위치로 디딤돌을 내려주세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -544,8 +579,13 @@ const STAGE_DATABASE = [
       { x: 960, y: 420, width: 320, height: 220 }
     ],
     pushBlocks: [{ x: 440, y: 548, width: 110, height: 92, requiredPushers: 4 }],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 740, y: 560, width: 90, height: 20, triggerSwitchId: "sw-s23-step" },
+      { x: 850, y: 490, width: 90, height: 20, triggerSwitchId: "sw-s23-step" }
+    ],
+    switches: [
+      { x: 980, y: 410, targetId: "sw-s23-step", width: 50 }
+    ],
     key: { x: 740, y: 480 },
     door: { x: 1140, y: 356 }
   }),
@@ -587,9 +627,13 @@ const STAGE_DATABASE = [
     ],
     bridges: [
       { x: 160, y: 570, width: 90, height: 20, triggerSwitchId: "sw-4p-lift" },
-      { x: 420, y: 450, width: 90, height: 20, triggerSwitchId: "sw-4p-lift" }
+      { x: 420, y: 450, width: 90, height: 20, triggerSwitchId: "sw-4p-lift" },
+      { x: 680, y: 340, width: 80, height: 20, triggerSwitchId: "sw-4p-lift" }
     ],
-    switches: [{ x: 80, y: 630, targetId: "sw-4p-lift", width: 50 }],
+    switches: [
+      { x: 80, y: 630, targetId: "sw-4p-lift", width: 50 },
+      { x: 800, y: 270, targetId: "sw-4p-lift", width: 50 }
+    ],
     pushBlocks: [],
     key: { x: 860, y: 220 },
     door: { x: 1140, y: 216 }
@@ -608,8 +652,11 @@ const STAGE_DATABASE = [
       { x: 540, y: 480, width: 40, height: 160 },
       { x: 920, y: 380, width: 360, height: 260 }
     ],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 440, y: 560, width: 90, height: 20, triggerSwitchId: "sw-s26-step" },
+      { x: 820, y: 460, width: 90, height: 20, triggerSwitchId: "sw-s26-step" }
+    ],
+    switches: [{ x: 980, y: 370, targetId: "sw-s26-step", width: 50 }],
     pushBlocks: [],
     key: { x: 640, y: 420 },
     door: { x: 1120, y: 316 }
@@ -650,7 +697,8 @@ const STAGE_DATABASE = [
     ],
     switches: [
       { x: 200, y: 630, targetId: "sw-4p-gate1", width: 50 },
-      { x: 350, y: 630, targetId: "sw-4p-gate2", width: 50 }
+      { x: 350, y: 630, targetId: "sw-4p-gate2", width: 50 },
+      { x: 960, y: 470, targetId: "sw-4p-gate1", width: 50 }
     ],
     bridges: [{ x: 740, y: 560, width: 120, height: 20, triggerSwitchId: "sw-4p-gate1" }],
     pushBlocks: [{ x: 500, y: 568, width: 72, height: 72, requiredPushers: 2 }],
@@ -694,8 +742,14 @@ const STAGE_DATABASE = [
       { x: 440, y: 640, width: 400, height: 80 },
       { x: 940, y: 460, width: 340, height: 260 }
     ],
-    bridges: [{ x: 340, y: 460, width: 600, height: 24, triggerSwitchId: "sw-4p-master" }],
-    switches: [{ x: 620, y: 630, targetId: "sw-4p-master", width: 60 }],
+    bridges: [
+      { x: 340, y: 460, width: 600, height: 24, triggerSwitchId: "sw-4p-master" },
+      { x: 860, y: 550, width: 80, height: 20, triggerSwitchId: "sw-4p-master" }
+    ],
+    switches: [
+      { x: 620, y: 630, targetId: "sw-4p-master", width: 60 },
+      { x: 980, y: 450, targetId: "sw-4p-master", width: 60 }
+    ],
     pushBlocks: [{ x: 500, y: 568, width: 80, height: 72, requiredPushers: 3 }],
     key: { x: 640, y: 520 },
     door: { x: 1140, y: 396 }
@@ -757,7 +811,7 @@ const STAGE_DATABASE = [
     name: "STAGE 33 · 5인 거대 철문 밀기",
     category: "5~6인 모둠",
     requiredPlayers: 5,
-    description: "모둠원 5명이 전원 달라붙어야만 비로소 서서히 밀려나는 초대형 철문 블록!",
+    description: "5명이 일제히 블록을 밀어 올린 뒤, 먼저 올라간 친구가 문 앞 스위치로 디딤돌을 내려주세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -765,8 +819,13 @@ const STAGE_DATABASE = [
       { x: 960, y: 420, width: 320, height: 220 }
     ],
     pushBlocks: [{ x: 460, y: 528, width: 130, height: 112, requiredPushers: 5 }],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 740, y: 560, width: 90, height: 20, triggerSwitchId: "sw-s33-step" },
+      { x: 840, y: 490, width: 90, height: 20, triggerSwitchId: "sw-s33-step" }
+    ],
+    switches: [
+      { x: 980, y: 410, targetId: "sw-s33-step", width: 50 }
+    ],
     key: { x: 760, y: 480 },
     door: { x: 1140, y: 356 }
   }),
@@ -835,7 +894,9 @@ const STAGE_DATABASE = [
     ],
     switches: [
       { x: 100, y: 630, targetId: "sw-6p-t1", width: 50 },
-      { x: 400, y: 490, targetId: "sw-6p-t2", width: 50 }
+      { x: 400, y: 490, targetId: "sw-6p-t2", width: 50 },
+      { x: 740, y: 350, targetId: "sw-6p-t1", width: 44 },
+      { x: 820, y: 350, targetId: "sw-6p-t2", width: 44 }
     ],
     pushBlocks: [],
     key: { x: 760, y: 300 },
@@ -857,7 +918,8 @@ const STAGE_DATABASE = [
     switches: [
       { x: 200, y: 630, targetId: "sw-6p-step1", width: 44 },
       { x: 360, y: 630, targetId: "sw-6p-step2", width: 44 },
-      { x: 520, y: 630, targetId: "sw-6p-step3", width: 44 }
+      { x: 520, y: 630, targetId: "sw-6p-step3", width: 44 },
+      { x: 960, y: 410, targetId: "sw-6p-step1", width: 44 }
     ],
     bridges: [
       { x: 680, y: 560, width: 80, height: 20, triggerSwitchId: "sw-6p-step1" },
@@ -894,7 +956,7 @@ const STAGE_DATABASE = [
     name: "STAGE 39 · 6인 메가 블록 장벽",
     category: "5~6인 모둠",
     requiredPlayers: 6,
-    description: "두 개의 거대 블록을 각각 3명씩 나누어 밀어 길을 개척하세요!",
+    description: "블록을 밀어 절벽에 오른 뒤, 먼저 올라간 친구가 문 앞 스위치를 밟아 중간 디딤돌을 내려주세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -905,8 +967,13 @@ const STAGE_DATABASE = [
       { x: 360, y: 568, width: 72, height: 72, requiredPushers: 3 },
       { x: 580, y: 568, width: 72, height: 72, requiredPushers: 3 }
     ],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 740, y: 550, width: 90, height: 20, triggerSwitchId: "sw-s39-step" },
+      { x: 840, y: 460, width: 90, height: 20, triggerSwitchId: "sw-s39-step" }
+    ],
+    switches: [
+      { x: 1000, y: 370, targetId: "sw-s39-step", width: 50 }
+    ],
     key: { x: 740, y: 460 },
     door: { x: 1140, y: 316 }
   }),
@@ -924,8 +991,14 @@ const STAGE_DATABASE = [
       { x: 440, y: 640, width: 400, height: 80 },
       { x: 920, y: 460, width: 360, height: 260 }
     ],
-    bridges: [{ x: 360, y: 460, width: 560, height: 24, triggerSwitchId: "sw-6p-final" }],
-    switches: [{ x: 620, y: 630, targetId: "sw-6p-final", width: 60 }],
+    bridges: [
+      { x: 360, y: 460, width: 560, height: 24, triggerSwitchId: "sw-6p-final" },
+      { x: 840, y: 550, width: 80, height: 20, triggerSwitchId: "sw-6p-final" }
+    ],
+    switches: [
+      { x: 620, y: 630, targetId: "sw-6p-final", width: 60 },
+      { x: 960, y: 450, targetId: "sw-6p-final", width: 60 }
+    ],
     pushBlocks: [{ x: 520, y: 568, width: 80, height: 72, requiredPushers: 4 }],
     key: { x: 660, y: 520 },
     door: { x: 1140, y: 396 }
@@ -948,7 +1021,10 @@ const STAGE_DATABASE = [
     key: { x: 540, y: 220 }, // 웅장한 다단 탑 높이
     door: { x: 1120, y: 296 },
     switches: [{ x: 980, y: 350, targetId: "sw-all-1", width: 60 }],
-    bridges: [{ x: 780, y: 480, width: 120, height: 20, triggerSwitchId: "sw-all-1" }],
+    bridges: [
+      { x: 640, y: 560, width: 120, height: 20, triggerSwitchId: "sw-all-1" },
+      { x: 780, y: 480, width: 120, height: 20, triggerSwitchId: "sw-all-1" }
+    ],
     pushBlocks: []
   }),
 
@@ -1018,8 +1094,13 @@ const STAGE_DATABASE = [
       { x: 980, y: 380, width: 300, height: 260 }
     ],
     pushBlocks: [{ x: 440, y: 508, width: 150, height: 132, requiredPushers: Math.max(4, Math.floor(p * 0.6)) }],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 740, y: 550, width: 100, height: 20, triggerSwitchId: "sw-s44-step" },
+      { x: 860, y: 460, width: 100, height: 20, triggerSwitchId: "sw-s44-step" }
+    ],
+    switches: [
+      { x: 1020, y: 370, targetId: "sw-s44-step", width: 50 }
+    ],
     key: { x: 760, y: 440 },
     door: { x: 1140, y: 316 }
   }),
@@ -1045,7 +1126,9 @@ const STAGE_DATABASE = [
     ],
     switches: [
       { x: 80, y: 630, targetId: "sw-all-t1", width: 44 },
-      { x: 240, y: 490, targetId: "sw-all-t2", width: 44 }
+      { x: 240, y: 490, targetId: "sw-all-t2", width: 44 },
+      { x: 760, y: 250, targetId: "sw-all-t1", width: 44 },
+      { x: 820, y: 250, targetId: "sw-all-t2", width: 44 }
     ],
     pushBlocks: [],
     key: { x: 840, y: 200 },
@@ -1131,13 +1214,17 @@ const STAGE_DATABASE = [
     ],
     switches: [
       { x: 140, y: 630, targetId: "sw-all-final", width: 44 },
-      { x: 240, y: 630, targetId: "sw-all-final", width: 44 }
+      { x: 240, y: 630, targetId: "sw-all-final", width: 44 },
+      { x: 960, y: 410, targetId: "sw-all-final", width: 44 }
     ],
     pushBlocks: [
       { x: 440, y: 568, width: 80, height: 72, requiredPushers: Math.max(3, Math.floor(p * 0.4)) },
       { x: 680, y: 568, width: 80, height: 72, requiredPushers: Math.max(3, Math.floor(p * 0.4)) }
     ],
-    bridges: [{ x: 820, y: 520, width: 100, height: 20, triggerSwitchId: "sw-all-final" }],
+    bridges: [
+      { x: 700, y: 580, width: 100, height: 20, triggerSwitchId: "sw-all-final" },
+      { x: 820, y: 520, width: 100, height: 20, triggerSwitchId: "sw-all-final" }
+    ],
     key: { x: 740, y: 480 },
     door: { x: 1140, y: 356 }
   }),
@@ -1155,8 +1242,14 @@ const STAGE_DATABASE = [
       { x: 420, y: 640, width: 440, height: 80 },
       { x: 940, y: 460, width: 340, height: 260 }
     ],
-    bridges: [{ x: 340, y: 460, width: 600, height: 24, triggerSwitchId: "sw-grand-final" }],
-    switches: [{ x: 640, y: 630, targetId: "sw-grand-final", width: 70 }],
+    bridges: [
+      { x: 340, y: 460, width: 600, height: 24, triggerSwitchId: "sw-grand-final" },
+      { x: 860, y: 550, width: 80, height: 20, triggerSwitchId: "sw-grand-final" }
+    ],
+    switches: [
+      { x: 640, y: 630, targetId: "sw-grand-final", width: 70 },
+      { x: 980, y: 450, targetId: "sw-grand-final", width: 60 }
+    ],
     pushBlocks: [{ x: 500, y: 548, width: 100, height: 92, requiredPushers: Math.max(4, Math.floor(p * 0.5)) }],
     key: { x: 640, y: 500 },
     door: { x: 1140, y: 396 }
@@ -1178,15 +1271,19 @@ const STAGE_DATABASE = [
       fullVerse: "너는 나 외에는 다른 [ 신들 ]을 네게 두지 말라",
       correctWord: "신들"
     },
-    description: "5명이 피라미드 탑을 쌓아 하늘 높이 있는 정답 열쇠 [신들]을 얻어 문으로 가세요!",
+    description: "5명이 피라미드 탑을 쌓아 정답 열쇠 [신들]을 획득하고, 문 앞 스위치로 디딤돌을 내려주세요!",
     spawnPoint: { x: 100, y: 604 },
     ropeEnabled: false,
     platforms: [
       { x: 0, y: 640, width: 1280, height: 80 },
       { x: 1000, y: 480, width: 280, height: 160 }
     ],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 860, y: 560, width: 120, height: 20, triggerSwitchId: "sw-cmd1-step" }
+    ],
+    switches: [
+      { x: 1040, y: 470, targetId: "sw-cmd1-step", width: 50 }
+    ],
     pushBlocks: [],
     keys: [
       { x: 620, y: 140, word: "신들", isCorrect: true }, // 바닥에서 5단 탑 쌓아야 닿는 높이
@@ -1221,8 +1318,13 @@ const STAGE_DATABASE = [
       { x: 680, y: 460, width: 200, height: 180 },
       { x: 1020, y: 500, width: 260, height: 140 }
     ],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 920, y: 570, width: 90, height: 20, triggerSwitchId: "sw-cmd2-step" },
+      { x: 570, y: 550, width: 90, height: 20, triggerSwitchId: "sw-cmd2-step" }
+    ],
+    switches: [
+      { x: 1050, y: 490, targetId: "sw-cmd2-step", width: 50 }
+    ],
     pushBlocks: [
       { x: 440, y: 544, width: 110, height: 96, requiredPushers: 5 } // 5명이 함께 밀어야 이동!
     ],
@@ -1251,7 +1353,7 @@ const STAGE_DATABASE = [
       fullVerse: "너는 네 하나님 여호와의 [ 이름 ]을 망령되게 부르지 말라",
       correctWord: "이름"
     },
-    description: "5명이 동시에 5개 스위치를 밟아 하늘 다리를 완성하고 정답 열쇠 [이름]을 얻으세요!",
+    description: "5명이 동시에 5개 스위치를 밟아 하늘 다리와 계단을 완성하고 정답 열쇠 [이름]을 얻으세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
     platforms: [
@@ -1259,14 +1361,17 @@ const STAGE_DATABASE = [
       { x: 880, y: 380, width: 400, height: 260 }
     ],
     bridges: [
-      { x: 520, y: 380, width: 360, height: 24, triggerSwitchId: "sw-cmd3-all" }
+      { x: 260, y: 550, width: 90, height: 20, triggerSwitchId: "sw-cmd3-all" },
+      { x: 380, y: 460, width: 90, height: 20, triggerSwitchId: "sw-cmd3-all" },
+      { x: 500, y: 380, width: 380, height: 24, triggerSwitchId: "sw-cmd3-all" }
     ],
     switches: [
       { x: 160, y: 630, width: 45, targetId: "sw-cmd3-all" },
       { x: 240, y: 630, width: 45, targetId: "sw-cmd3-all" },
       { x: 320, y: 630, width: 45, targetId: "sw-cmd3-all" },
       { x: 400, y: 630, width: 45, targetId: "sw-cmd3-all" },
-      { x: 480, y: 630, width: 45, targetId: "sw-cmd3-all" }
+      { x: 480, y: 630, width: 45, targetId: "sw-cmd3-all" },
+      { x: 940, y: 370, width: 45, targetId: "sw-cmd3-all" }
     ],
     pushBlocks: [],
     keys: [
@@ -1302,8 +1407,14 @@ const STAGE_DATABASE = [
       { x: 920, y: 420, width: 360, height: 300 },
       { x: 440, y: 680, width: 400, height: 40 }
     ],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 840, y: 600, width: 70, height: 20, triggerSwitchId: "sw-cmd4-stairs" },
+      { x: 860, y: 510, width: 60, height: 20, triggerSwitchId: "sw-cmd4-stairs" }
+    ],
+    switches: [
+      { x: 480, y: 670, targetId: "sw-cmd4-stairs", width: 50 },
+      { x: 960, y: 410, targetId: "sw-cmd4-stairs", width: 50 }
+    ],
     pushBlocks: [],
     keys: [
       { x: 640, y: 540, word: "안식일", isCorrect: true }, // 절벽 중간 허공 (밧줄 번지 전용)
@@ -1339,6 +1450,7 @@ const STAGE_DATABASE = [
       { x: 560, y: 220, width: 160, height: 24 }
     ],
     bridges: [
+      { x: 150, y: 530, width: 90, height: 20, triggerSwitchId: "sw-cmd5" },
       { x: 260, y: 420, width: 180, height: 24, triggerSwitchId: "sw-cmd5" }
     ],
     switches: [
@@ -1381,8 +1493,16 @@ const STAGE_DATABASE = [
       { x: 820, y: 280, width: 180, height: 440 },
       { x: 1040, y: 160, width: 240, height: 560 }
     ],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 340, y: 580, width: 40, height: 20, triggerSwitchId: "sw-cmd6-all" },
+      { x: 560, y: 460, width: 40, height: 20, triggerSwitchId: "sw-cmd6-all" },
+      { x: 780, y: 340, width: 40, height: 20, triggerSwitchId: "sw-cmd6-all" },
+      { x: 1000, y: 220, width: 40, height: 20, triggerSwitchId: "sw-cmd6-all" }
+    ],
+    switches: [
+      { x: 280, y: 630, width: 50, targetId: "sw-cmd6-all" },
+      { x: 1080, y: 150, width: 50, targetId: "sw-cmd6-all" }
+    ],
     pushBlocks: [],
     keys: [
       { x: 1160, y: 100, word: "살인", isCorrect: true }, // 꼭대기 층
@@ -1460,8 +1580,13 @@ const STAGE_DATABASE = [
       { x: 780, y: 440, width: 220, height: 200 },
       { x: 1040, y: 300, width: 240, height: 340 }
     ],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 680, y: 540, width: 90, height: 20, triggerSwitchId: "sw-cmd8-step" },
+      { x: 990, y: 370, width: 50, height: 20, triggerSwitchId: "sw-cmd8-step" }
+    ],
+    switches: [
+      { x: 1070, y: 290, targetId: "sw-cmd8-step", width: 50 }
+    ],
     pushBlocks: [
       { x: 320, y: 554, width: 86, height: 86, requiredPushers: 3 },
       { x: 540, y: 554, width: 86, height: 86, requiredPushers: 2 }
@@ -1499,8 +1624,13 @@ const STAGE_DATABASE = [
       { x: 420, y: 640, width: 440, height: 80 },
       { x: 960, y: 420, width: 320, height: 300 }
     ],
-    bridges: [],
-    switches: [],
+    bridges: [
+      { x: 880, y: 530, width: 80, height: 20, triggerSwitchId: "sw-cmd9-stairs" }
+    ],
+    switches: [
+      { x: 440, y: 630, targetId: "sw-cmd9-stairs", width: 50 },
+      { x: 990, y: 410, targetId: "sw-cmd9-stairs", width: 50 }
+    ],
     pushBlocks: [],
     keys: [
       { x: 640, y: 380, word: "거짓 증거", isCorrect: true }, // 중앙 고공 스윙 열쇠
@@ -1536,12 +1666,14 @@ const STAGE_DATABASE = [
       { x: 960, y: 320, width: 320, height: 320 }
     ],
     bridges: [
+      { x: 380, y: 540, width: 100, height: 20, triggerSwitchId: "sw-cmd10" },
       { x: 800, y: 440, width: 160, height: 24, triggerSwitchId: "sw-cmd10" }
     ],
     switches: [
       { x: 160, y: 630, width: 50, targetId: "sw-cmd10" },
       { x: 260, y: 630, width: 50, targetId: "sw-cmd10" },
-      { x: 360, y: 630, width: 50, targetId: "sw-cmd10" }
+      { x: 360, y: 630, width: 50, targetId: "sw-cmd10" },
+      { x: 1000, y: 310, width: 50, targetId: "sw-cmd10" }
     ],
     pushBlocks: [
       { x: 540, y: 360, width: 80, height: 80, requiredPushers: 2 }

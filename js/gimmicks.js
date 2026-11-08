@@ -122,10 +122,42 @@ export class GimmickManager {
       sw.isPressed = pressedNow;
     });
 
-    // 스위치와 브릿지(움직이는 발판/문) 연동
+    // 스위치와 브릿지(움직이는 발판/문/도우미 계단) 연동 (한 번 밟으면 영구 유지되는 도우미 발판 지원)
     this.bridges.forEach(br => {
-      const relatedSwitch = this.switches.find(s => s.targetId === br.triggerSwitchId);
-      br.isActive = relatedSwitch ? relatedSwitch.isPressed : false;
+      // 이미 영구 고정(latched)된 다리는 항상 유지
+      if (br.isLatched) {
+        br.isActive = true;
+        return;
+      }
+
+      const relatedSwitches = this.switches.filter(s => s.targetId === br.triggerSwitchId);
+      if (relatedSwitches.length === 0) return;
+
+      // 다인 동시 스위치인지 여부 확인
+      const isSimultaneous = relatedSwitches.length > 1 && br.triggerSwitchId.includes("all");
+
+      let activeNow = false;
+      if (isSimultaneous) {
+        activeNow = relatedSwitches.every(s => s.isPressed);
+      } else {
+        activeNow = relatedSwitches.some(s => s.isPressed);
+      }
+
+      // 도우미 발판(step, stairs, helper, ladder) 또는 다인 퍼즐 다리는 한 번 완성되면 영구 유지!
+      const isHelper = br.triggerSwitchId.includes("step") || 
+                       br.triggerSwitchId.includes("stairs") || 
+                       br.triggerSwitchId.includes("helper") ||
+                       br.triggerSwitchId.includes("ladder") ||
+                       isSimultaneous;
+
+      if (activeNow) {
+        br.isActive = true;
+        if (isHelper) {
+          br.isLatched = true; // 영구 활성화 (아래에 남은 모든 친구들이 여유 있게 올라올 수 있도록 보장!)
+        }
+      } else if (!br.isLatched) {
+        br.isActive = false;
+      }
     });
 
     // 2. 거대 협동 블록 밀기 업데이트

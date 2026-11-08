@@ -401,14 +401,13 @@ class PicoParkApp {
     window.addEventListener("keydown", unlockAudio, { once: true });
     window.addEventListener("touchstart", unlockAudio, { once: true });
 
-    // 게임 시작 버튼
+    // 게임 시작 버튼 (학급 전원 100% 동시 출전 보장)
     this.btnStartGame.addEventListener("click", () => {
       const stageIdx = parseInt(this.selectStartStage.value, 10) || 0;
       const difficulty = this.selectDifficulty.value || "NORMAL";
       
-      const activeIds = this.playMode === "SELECT" 
-        ? Array.from(this.selectedPlayerIds) 
-        : Array.from(network.players.keys());
+      // 누락자 없이 접속한 학생 전원이 100% 함께 출전하도록 보장
+      const activeIds = Array.from(network.players.keys());
 
       network.startGame(stageIdx, difficulty, activeIds);
     });
@@ -632,19 +631,10 @@ class PicoParkApp {
   applyPlayModeUI() {
     if (this.gameState !== "PLAYING") return;
 
-    // 내가 벤치(관전) 플레이어인지 확인
-    const isBench = this.activePlayerIds.size > 0 && !this.activePlayerIds.has(network.myId);
-
-    if (isBench && this.isTouchDevice) {
-      // 벤치 학생은 응원 오버레이 활성화
-      this.screenGame.classList.add("hidden");
-      this.screenGamepad.classList.add("hidden");
-      this.screenSpectator.classList.remove("hidden");
-      this.mobileControls.classList.add("hidden");
-      return;
-    } else {
-      this.screenSpectator.classList.add("hidden");
-    }
+    // 대기실 화면 확실히 숨김
+    if (this.screenRoom) this.screenRoom.classList.add("hidden");
+    if (this.screenLobby) this.screenLobby.classList.add("hidden");
+    if (this.screenSpectator) this.screenSpectator.classList.add("hidden");
 
     if (this.isTouchDevice && this.mobilePlayMode === "GAMEPAD") {
       this.screenGame.classList.add("hidden");

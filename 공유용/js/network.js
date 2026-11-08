@@ -115,8 +115,8 @@ class NetworkManager {
   // 게스트 연결 처리 (호스트 측 - 즉시/대기 연결 양방향 보장)
   handleGuestConnection(conn) {
     const bindGuestEvents = () => {
-      // 30인 초과 여부 확인
-      if (this.players.size >= 32) {
+      // 32인 초과 여부 확인
+      if (this.players.size >= 34) {
         conn.send({ type: "error", message: "방 정원(30명)이 가득 찼습니다." });
         conn.close();
         return;
@@ -130,9 +130,9 @@ class NetworkManager {
         this.removeGuest(conn.peer);
       });
 
+      // 일시적 DataChannel 경고는 로그만 기록하고 임의로 게스트를 추방(removeGuest)하지 않음!
       conn.on("error", (err) => {
-        console.warn("게스트 연결 알림:", err);
-        this.removeGuest(conn.peer);
+        console.warn("[Network] 게스트 채널 알림 (정상 유지):", err);
       });
     };
 
@@ -216,14 +216,9 @@ class NetworkManager {
     }
   }
 
-  // 방 참가하기 (게스트 - 시간 제한 타이머 없이 끝까지 대기 & 응답 올 때까지 재시도)
+  // 방 참가하기 (게스트 - 30명 학급 동시 접속을 위한 자동 재시도 루프 내장)
   joinRoom(roomCode, nickname, onProgress = null) {
     return new Promise((resolve, reject) => {
-      // 기존 연결 정리
-      if (this.peer && !this.peer.destroyed) {
-        this.peer.destroy();
-      }
-
       this.isHost = false;
       this.roomCode = (roomCode || "").trim().toUpperCase();
       this.myNickname = nickname || "학생";
@@ -231,88 +226,118 @@ class NetworkManager {
 
       let isFinished = false;
       let retryTimer = null;
+      let attemptCount = 0;
+      const MAX_ATTEMPTS = 5;
 
-      if (onProgress) onProgress("선생님 방에 연결하고 있습니다...");
-
-      // @ts-ignore
-      this.peer = new window.Peer(null, {
-        debug: 1,
-        config: {
-          iceServers: ICE_SERVERS
-        }
-      });
-
-      this.peer.on("open", (id) => {
+      const attemptConnect = () => {
         if (isFinished) return;
-        this.myId = id;
+        attemptCount++;
 
-        if (onProgress) onProgress(`선생님 방(${this.roomCode})에 입장 요청 중...`);
+        // 기존 연결 정리
+        if (this.peer && !this.peer.destroyed) {
+          try { this.peer.destroy(); } catch (e) {}
+        }
 
-        // 호스트에게 연결 시도
-        this.hostConnection = this.peer.connect(hostPeerId, { reliable: true });
+        const progressMsg = attemptCount === 1 
+          ? `선생님 방(${this.roomCode})에 연결하고 있습니다...`
+          : `선생님 방 연결 대기 중... (재시도 ${attemptCount}/${MAX_ATTEMPTS})`;
+        
+        if (onProgress) onProgress(progressMsg);
 
-        const sendJoinReq = () => {
-          if (this.hostConnection && this.hostConnection.open) {
-            this.hostConnection.send({
-              type: "join_req",
-              nickname: this.myNickname
-            });
+        // @ts-ignore
+        this.peer = new window.Peer(null, {
+          debug: 1,
+          config: {
+            iceServers: ICE_SERVERS
           }
-        };
+        });
 
-        const onConnected = () => {
-          sendJoinReq();
+        this.peer.on("open", (id) => {
+          if (isFinished) return;
+          this.myId = id;
 
-          // 방장의 환영 응답(join_res)이 올 때까지 2초마다 가볍게 재전송 (패킷 유실 완벽 방지)
-          if (retryTimer) clearInterval(retryTimer);
-          retryTimer = setInterval(() => {
-            if (isFinished) {
-              if (retryTimer) clearInterval(retryTimer);
-              return;
+          if (onProgress) onProgress(`선생님 방(${this.roomCode})에 입장 신호 전송 중...`);
+
+          // 호스트에게 연결 시도
+          this.hostConnection = this.peer.connect(hostPeerId, { reliable: true });
+
+          const sendJoinReq = () => {
+            if (this.hostConnection && this.hostConnection.open) {
+              this.hostConnection.send({
+                type: "join_req",
+                nickname: this.myNickname
+              });
             }
+          };
+
+          const onConnected = () => {
             sendJoinReq();
-          }, 2000);
-        };
 
-        if (this.hostConnection.open) {
-          onConnected();
-        } else {
-          this.hostConnection.on("open", onConnected);
-        }
-
-        this.hostConnection.on("data", (data) => {
-          if (!isFinished && data.type === "join_res") {
+            // 방장의 환영 응답(join_res)이 올 때까지 2초마다 가볍게 재전송 (패킷 유실 완벽 방지)
             if (retryTimer) clearInterval(retryTimer);
-            isFinished = true;
-          }
-          this.handleMessageFromHost(data, resolve, reject);
-        });
+            retryTimer = setInterval(() => {
+              if (isFinished) {
+                if (retryTimer) clearInterval(retryTimer);
+                return;
+              }
+              sendJoinReq();
+            }, 2000);
+          };
 
-        this.hostConnection.on("close", () => {
-          if (!isFinished) {
-            if (retryTimer) clearInterval(retryTimer);
-            isFinished = true;
-            reject(new Error("선생님 방과의 연결이 닫혔습니다. 다시 시도해 주세요."));
+          if (this.hostConnection.open) {
+            onConnected();
           } else {
-            if (this.onError) this.onError(new Error("선생님 방과의 연결이 끊어졌습니다."));
+            this.hostConnection.on("open", onConnected);
+          }
+
+          this.hostConnection.on("data", (data) => {
+            if (!isFinished && data.type === "join_res") {
+              if (retryTimer) clearInterval(retryTimer);
+              isFinished = true;
+            }
+            this.handleMessageFromHost(data, resolve, reject);
+          });
+
+          this.hostConnection.on("close", () => {
+            if (!isFinished) {
+              console.warn("[Network] 호스트 연결 닫힘, 재시도 대기...");
+              scheduleNextAttempt();
+            } else {
+              if (this.onError) this.onError(new Error("선생님 방과의 연결이 끊어졌습니다."));
+            }
+          });
+        });
+
+        this.peer.on("error", (err) => {
+          console.warn(`[Network] Peer 에러 (시도 ${attemptCount}/${MAX_ATTEMPTS}):`, err);
+          if (!isFinished) {
+            if (attemptCount < MAX_ATTEMPTS) {
+              scheduleNextAttempt();
+            } else {
+              isFinished = true;
+              if (retryTimer) clearInterval(retryTimer);
+              let msg = `선생님 방(${this.roomCode})에 입장할 수 없습니다.`;
+              if (err.type === "peer-unavailable") {
+                msg = `선생님 방(${this.roomCode})을 찾을 수 없습니다. 칠판의 코드를 확인해 주세요.`;
+              } else if (err.message) {
+                msg = `입장 실패: ${err.message}`;
+              }
+              reject(new Error(msg));
+            }
           }
         });
-      });
+      };
 
-      this.peer.on("error", (err) => {
-        console.error("PeerJS 참가 에러:", err);
-        if (!isFinished) {
-          if (retryTimer) clearInterval(retryTimer);
-          isFinished = true;
-          let msg = "방에 입장할 수 없습니다.";
-          if (err.type === "peer-unavailable") {
-            msg = `선생님 방(${this.roomCode})을 찾을 수 없습니다. 칠판의 코드를 확인해 주세요.`;
-          } else if (err.message) {
-            msg = `입장 실패: ${err.message}`;
-          }
-          reject(new Error(msg));
-        }
-      });
+      const scheduleNextAttempt = () => {
+        if (isFinished || attemptCount >= MAX_ATTEMPTS) return;
+        const delay = 2000 + Math.random() * 1000; // 지터(Jitter)로 동시 재요청 충돌 방지
+        setTimeout(() => {
+          if (!isFinished) attemptConnect();
+        }, delay);
+      };
+
+      // 첫 연결 시도
+      attemptConnect();
     });
   }
 
