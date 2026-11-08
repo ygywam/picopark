@@ -146,10 +146,10 @@ const STAGE_DATABASE = [
       { x: 0, y: 640, width: 600, height: 80 },
       { x: 680, y: 420, width: 600, height: 300 }
     ],
-    bridges: [{ x: 500, y: 520, width: 120, height: 24, triggerSwitchId: "sw-lift" }],
+    bridges: [{ x: 500, y: 520, width: 120, height: 24, triggerSwitchId: "sw-lift-step" }],
     switches: [
-      { x: 280, y: 630, targetId: "sw-lift", width: 54 },
-      { x: 740, y: 410, targetId: "sw-lift", width: 54 }
+      { x: 280, y: 630, targetId: "sw-lift-step", width: 54 },
+      { x: 740, y: 410, targetId: "sw-lift-step", width: 54 }
     ],
     pushBlocks: [],
     key: { x: 840, y: 360 },
@@ -292,10 +292,10 @@ const STAGE_DATABASE = [
       { x: 0, y: 640, width: 1280, height: 80 },
       { x: 920, y: 460, width: 360, height: 180 }
     ],
-    key: { x: 520, y: 360 }, // 3단 탑 높이
+    key: { x: 520, y: 390 }, // 3단 탑 높이 (3인 필수)
     door: { x: 1120, y: 396 },
-    switches: [{ x: 960, y: 450, targetId: "sw-3p-1", width: 54 }],
-    bridges: [{ x: 800, y: 550, width: 120, height: 20, triggerSwitchId: "sw-3p-1" }],
+    switches: [{ x: 960, y: 450, targetId: "sw-3p-step", width: 54 }],
+    bridges: [{ x: 800, y: 550, width: 120, height: 20, triggerSwitchId: "sw-3p-step" }],
     pushBlocks: []
   }),
 
@@ -379,14 +379,14 @@ const STAGE_DATABASE = [
       { x: 680, y: 360, width: 600, height: 360 }
     ],
     bridges: [
-      { x: 240, y: 560, width: 100, height: 20, triggerSwitchId: "sw-3p-lift1" },
-      { x: 540, y: 420, width: 100, height: 20, triggerSwitchId: "sw-3p-lift2" }
+      { x: 240, y: 560, width: 100, height: 20, triggerSwitchId: "sw-3p-step1" },
+      { x: 540, y: 420, width: 100, height: 20, triggerSwitchId: "sw-3p-step2" }
     ],
     switches: [
-      { x: 100, y: 630, targetId: "sw-3p-lift1", width: 50 },
-      { x: 420, y: 490, targetId: "sw-3p-lift2", width: 50 },
-      { x: 740, y: 350, targetId: "sw-3p-lift1", width: 50 },
-      { x: 820, y: 350, targetId: "sw-3p-lift2", width: 50 }
+      { x: 100, y: 630, targetId: "sw-3p-step1", width: 50 },
+      { x: 420, y: 490, targetId: "sw-3p-step2", width: 50 },
+      { x: 740, y: 350, targetId: "sw-3p-step1", width: 50 },
+      { x: 820, y: 350, targetId: "sw-3p-step2", width: 50 }
     ],
     pushBlocks: [],
     key: { x: 800, y: 300 },
@@ -452,12 +452,12 @@ const STAGE_DATABASE = [
       { x: 640, y: 380, width: 440, height: 20 }
     ],
     bridges: [
-      { x: 140, y: 560, width: 60, height: 20, triggerSwitchId: "sw-3p-zig" },
-      { x: 580, y: 440, width: 60, height: 20, triggerSwitchId: "sw-3p-zig" }
+      { x: 140, y: 560, width: 60, height: 20, triggerSwitchId: "sw-3p-stairs" },
+      { x: 580, y: 440, width: 60, height: 20, triggerSwitchId: "sw-3p-stairs" }
     ],
     switches: [
-      { x: 240, y: 490, targetId: "sw-3p-zig", width: 50 },
-      { x: 800, y: 370, targetId: "sw-3p-zig", width: 50 }
+      { x: 240, y: 490, targetId: "sw-3p-stairs", width: 50 },
+      { x: 800, y: 370, targetId: "sw-3p-stairs", width: 50 }
     ],
     pushBlocks: [],
     key: { x: 720, y: 320 },
@@ -525,7 +525,7 @@ const STAGE_DATABASE = [
       { x: 0, y: 640, width: 1280, height: 80 },
       { x: 900, y: 440, width: 380, height: 200 }
     ],
-    key: { x: 520, y: 320 }, // 4단 탑 높이
+    key: { x: 520, y: 355 }, // 4단 탑 높이 (4인 필수)
     door: { x: 1120, y: 376 },
     switches: [{ x: 960, y: 430, targetId: "sw-4p-step", width: 60 }],
     bridges: [{ x: 760, y: 540, width: 120, height: 20, triggerSwitchId: "sw-4p-step" }],
@@ -757,7 +757,7 @@ const STAGE_DATABASE = [
       { x: 0, y: 640, width: 1280, height: 80 },
       { x: 920, y: 400, width: 360, height: 240 }
     ],
-    key: { x: 540, y: 280 }, // 5단 탑 높이
+    key: { x: 540, y: 315 }, // 5단 탑 높이 (5인 필수)
     door: { x: 1120, y: 336 },
     switches: [{ x: 980, y: 390, targetId: "sw-5p-step", width: 60 }],
     bridges: [{ x: 780, y: 520, width: 120, height: 20, triggerSwitchId: "sw-5p-step" }],
@@ -848,10 +848,10 @@ const STAGE_DATABASE = [
       { x: 740, y: 460, width: 540, height: 20 }
     ],
     switches: [
-      { x: 300, y: 450, targetId: "sw-6p-squad", width: 50 },
-      { x: 840, y: 450, targetId: "sw-6p-squad", width: 50 }
+      { x: 300, y: 450, targetId: "sw-6p-step", width: 50 },
+      { x: 840, y: 450, targetId: "sw-6p-step", width: 50 }
     ],
-    bridges: [{ x: 560, y: 540, width: 160, height: 20, triggerSwitchId: "sw-6p-squad" }],
+    bridges: [{ x: 560, y: 540, width: 160, height: 20, triggerSwitchId: "sw-6p-step" }],
     pushBlocks: [],
     key: { x: 640, y: 380 },
     door: { x: 1140, y: 396 }
@@ -985,7 +985,7 @@ const STAGE_DATABASE = [
     id: 40,
     name: "STAGE 41 · 학급 전원 인간 피라미드",
     category: "학급 올스타",
-    requiredPlayers: Math.min(8, p),
+    requiredPlayers: 5,
     description: "반 전체가 바닥부터 다단으로 층층이 탑을 쌓아 구름 위 열쇠에 도달하세요!",
     spawnPoint: { x: 120, y: 604 },
     ropeEnabled: false,
@@ -993,12 +993,12 @@ const STAGE_DATABASE = [
       { x: 0, y: 640, width: 1280, height: 80 },
       { x: 920, y: 360, width: 360, height: 280 }
     ],
-    key: { x: 540, y: 220 }, // 웅장한 다단 탑 높이
+    key: { x: 540, y: 320 }, // 5단 탑 높이
     door: { x: 1120, y: 296 },
-    switches: [{ x: 980, y: 350, targetId: "sw-all-1", width: 60 }],
+    switches: [{ x: 980, y: 350, targetId: "sw-all-stairs", width: 60 }],
     bridges: [
-      { x: 640, y: 560, width: 120, height: 20, triggerSwitchId: "sw-all-1" },
-      { x: 780, y: 480, width: 120, height: 20, triggerSwitchId: "sw-all-1" }
+      { x: 640, y: 560, width: 120, height: 20, triggerSwitchId: "sw-all-stairs" },
+      { x: 780, y: 480, width: 120, height: 20, triggerSwitchId: "sw-all-stairs" }
     ],
     pushBlocks: []
   }),
@@ -1008,7 +1008,7 @@ const STAGE_DATABASE = [
     id: 41,
     name: "STAGE 42 · 학급 전원 동시 발판",
     category: "학급 올스타",
-    requiredPlayers: Math.min(8, p),
+    requiredPlayers: 5,
     description: "화면 가득 펼쳐진 모든 스위치에 팀원들이 한 명씩 올라서야 메가 게이트가 열립니다!",
     spawnPoint: { x: 60, y: 604 },
     ropeEnabled: false,
@@ -1038,7 +1038,7 @@ const STAGE_DATABASE = [
     id: 42,
     name: "STAGE 43 · 학급 메가 밧줄 체인",
     category: "학급 올스타",
-    requiredPlayers: Math.min(8, p),
+    requiredPlayers: 5,
     description: "학급 전원이 하나의 거대한 밧줄로 연결되었습니다! 전원 일사불란하게 전진!",
     spawnPoint: { x: 60, y: 604 },
     ropeEnabled: true,
@@ -1060,7 +1060,7 @@ const STAGE_DATABASE = [
     id: 43,
     name: "STAGE 44 · 학급 총력전 메가 블록",
     category: "학급 올스타",
-    requiredPlayers: Math.min(8, p),
+    requiredPlayers: 5,
     description: "반 전체가 한꺼번에 달려들어 골리앗 블록을 벽 끝까지 밀고, 거대 블록을 디딤돌 삼아 문으로 올라가세요!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
@@ -1068,7 +1068,7 @@ const STAGE_DATABASE = [
       { x: 0, y: 640, width: 1280, height: 80 },
       { x: 980, y: 380, width: 300, height: 260 }
     ],
-    pushBlocks: [{ x: 440, y: 508, width: 150, height: 132, requiredPushers: Math.max(4, Math.floor(p * 0.6)) }],
+    pushBlocks: [{ x: 440, y: 508, width: 150, height: 132, requiredPushers: 4 }],
     bridges: [],
     switches: [],
     key: { x: 760, y: 440 },
@@ -1172,7 +1172,7 @@ const STAGE_DATABASE = [
     id: 48,
     name: "STAGE 49 · 최후의 결전 게이트",
     category: "학급 올스타",
-    requiredPlayers: Math.min(8, p),
+    requiredPlayers: 5,
     description: "4개의 스위치와 2개의 거대 블록을 완벽하게 처리해야 탈출 문이 열립니다!",
     spawnPoint: { x: 80, y: 604 },
     ropeEnabled: false,
@@ -1186,8 +1186,8 @@ const STAGE_DATABASE = [
       { x: 960, y: 410, targetId: "sw-all-final", width: 44 }
     ],
     pushBlocks: [
-      { x: 440, y: 568, width: 80, height: 72, requiredPushers: Math.max(3, Math.floor(p * 0.4)) },
-      { x: 680, y: 568, width: 80, height: 72, requiredPushers: Math.max(3, Math.floor(p * 0.4)) }
+      { x: 440, y: 568, width: 80, height: 72, requiredPushers: 3 },
+      { x: 680, y: 568, width: 80, height: 72, requiredPushers: 3 }
     ],
     bridges: [
       { x: 700, y: 580, width: 100, height: 20, triggerSwitchId: "sw-all-final" },
@@ -1201,7 +1201,7 @@ const STAGE_DATABASE = [
     id: 49,
     name: "STAGE 50 · 그랜드 마스터 피코파크 (FINAL)",
     category: "학급 올스타",
-    requiredPlayers: Math.min(8, p),
+    requiredPlayers: 6,
     description: "스택킹, 밧줄 번지, 메가 블록, 전원 스위치! 반 전체가 하나 되는 전설의 피날레!",
     spawnPoint: { x: 80, y: 424 },
     ropeEnabled: true,
@@ -1217,7 +1217,7 @@ const STAGE_DATABASE = [
     switches: [
       { x: 640, y: 630, targetId: "sw-grand-final", width: 70 }
     ],
-    pushBlocks: [{ x: 500, y: 548, width: 100, height: 92, requiredPushers: Math.max(4, Math.floor(p * 0.5)) }],
+    pushBlocks: [{ x: 500, y: 548, width: 100, height: 92, requiredPushers: 4 }],
     key: { x: 640, y: 500 },
     door: { x: 1140, y: 396 }
   }),
@@ -1253,12 +1253,12 @@ const STAGE_DATABASE = [
     ],
     pushBlocks: [],
     keys: [
-      { x: 620, y: 140, word: "신들", isCorrect: true }, // 바닥에서 5단 탑 쌓아야 닿는 높이
+      { x: 620, y: 320, word: "신들", isCorrect: true }, // 5단 탑 높이 (5인 필수)
       { x: 340, y: 590, word: "우상", isCorrect: false },
       { x: 500, y: 590, word: "재물", isCorrect: false },
       { x: 820, y: 590, word: "보석", isCorrect: false }
     ],
-    key: { x: 620, y: 140 },
+    key: { x: 620, y: 320 },
     door: { x: 1140, y: 416 }
   }),
 
@@ -1332,8 +1332,7 @@ const STAGE_DATABASE = [
       { x: 240, y: 630, width: 45, targetId: "sw-cmd3-all" },
       { x: 320, y: 630, width: 45, targetId: "sw-cmd3-all" },
       { x: 400, y: 630, width: 45, targetId: "sw-cmd3-all" },
-      { x: 480, y: 630, width: 45, targetId: "sw-cmd3-all" },
-      { x: 940, y: 370, width: 45, targetId: "sw-cmd3-all" }
+      { x: 480, y: 630, width: 45, targetId: "sw-cmd3-all" }
     ],
     pushBlocks: [],
     keys: [

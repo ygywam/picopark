@@ -50,19 +50,26 @@ class PicoParkApp {
     this.initOrientationHandler();
   }
 
-  // 50개 스테이지를 카테고리별 optgroup으로 드롭다운에 채움
-  populate50StagesDropdown() {
+  // 접속 인원수(pCount) 이하로 클리어 가능한 스테이지만 필터링하여 드롭다운에 채움
+  populate50StagesDropdown(customPCount) {
     const select = document.getElementById("select-start-stage");
     if (!select) return;
+
+    // 현재 접속 인원수 (호스트 혼자 대기 중일 때는 2인 스테이지를 기본으로 테스트할 수 있도록 최소 2 보장)
+    const connectedCount = network.players ? network.players.size : 1;
+    const pCount = customPCount !== undefined ? customPCount : Math.max(2, connectedCount);
+
+    const prevVal = select.value;
     select.innerHTML = "";
 
     const summaries = getAllStageSummaries();
     
-    STAGE_CATEGORIES.forEach(cat => {
-      const group = document.createElement("optgroup");
-      group.label = cat.title;
+    // 현재 인원수로 클리어 가능한 스테이지(requiredPlayers <= pCount)만 필터링!
+    // (2인 접속: 2인 스테이지만 / 3인 접속: 2, 3인 스테이지 / 5인 접속: 2, 3, 4, 5인 스테이지)
+    const availableSummaries = summaries.filter(s => s.requiredPlayers <= pCount);
 
-      const items = summaries.filter(s => {
+    STAGE_CATEGORIES.forEach(cat => {
+      const items = availableSummaries.filter(s => {
         if (cat.id === "cat-2p") return s.index >= 0 && s.index < 10;
         if (cat.id === "cat-3p") return s.index >= 10 && s.index < 20;
         if (cat.id === "cat-4p") return s.index >= 20 && s.index < 30;
@@ -72,19 +79,46 @@ class PicoParkApp {
         return false;
       });
 
-      items.forEach(item => {
-        const opt = document.createElement("option");
-        opt.value = item.index;
-        const ropeTag = item.ropeEnabled ? " 🪢[밧줄]" : "";
-        opt.textContent = `[${item.requiredPlayers}인] ${item.name}${ropeTag}`;
-        if (item.index === 3) opt.selected = true; // 기본 4단계 밧줄 번지
-        group.appendChild(opt);
-      });
+      if (items.length > 0) {
+        const group = document.createElement("optgroup");
+        group.label = `${cat.title} (${items.length}개 도전 가능)`;
 
-      select.appendChild(group);
+        items.forEach(item => {
+          const opt = document.createElement("option");
+          opt.value = item.index;
+          const ropeTag = item.ropeEnabled ? " 🪢[밧줄]" : "";
+          opt.textContent = `[${item.requiredPlayers}인] ${item.name}${ropeTag}`;
+          group.appendChild(opt);
+        });
+
+        select.appendChild(group);
+      }
     });
 
+    // 이전에 선택했던 스테이지가 현재 필터에도 존재하면 유지, 없으면 첫 번째 선택
+    if (availableSummaries.some(s => s.index == prevVal)) {
+      select.value = prevVal;
+    } else if (availableSummaries.length > 0) {
+      select.value = availableSummaries[0].index;
+    }
+
     this.updateRequiredCountLabel();
+  }
+
+  // 현재 접속 인원수로 클리어 가능한 다음 스테이지 인덱스 탐색 (불가능한 인원수 스테이지 자동 건너뛰기)
+  getNextPlayableStageIndex(fromIndex) {
+    const summaries = getAllStageSummaries();
+    const total = summaries.length;
+    const connectedCount = network.players ? network.players.size : 1;
+    const pCount = Math.max(2, connectedCount);
+
+    for (let offset = 1; offset <= total; offset++) {
+      const nextIdx = (fromIndex + offset) % total;
+      if (summaries[nextIdx].requiredPlayers <= pCount) {
+        return nextIdx;
+      }
+    }
+    return (fromIndex + 1) % total;
   }
 
   // 현재 선택된 스테이지의 필요 인원 라벨 갱신
@@ -252,9 +286,10 @@ class PicoParkApp {
     // 🎲 럭키 랜덤 스테이지 뽑기 버튼
     this.btnRandomStage.addEventListener("click", () => {
       const summaries = getAllStageSummaries();
-      const pCount = Math.max(1, network.players.size);
+      const connectedCount = network.players ? network.players.size : 1;
+      const pCount = Math.max(2, connectedCount);
       
-      // 현재 인원수로 도전 가능한 적합 스테이지 후보 필터링
+      // 현재 인원수로 도전 가능한 적합 스테이지 후보 필터링 (requiredPlayers <= pCount)
       let candidates = summaries.filter(s => s.requiredPlayers <= pCount);
       if (candidates.length === 0) candidates = summaries;
 
@@ -265,7 +300,7 @@ class PicoParkApp {
       if (this.playMode === "SELECT") {
         this.autoPickPlayers();
       }
-      this.showToast(`🎲 랜덤 당첨: ${picked.name}! (필요: ${picked.requiredPlayers}명)`);
+      this.showToast(`🎲 랜덤 당첨: ${picked.name}! (필요: ${picked.requiredPlayers}명 / 현재: ${connectedCount}명)`);
     });
 
     // 출전 방식 라디오 토글
@@ -427,7 +462,8 @@ class PicoParkApp {
     });
     this.btnSkipStage.addEventListener("click", () => {
       if (network.isHost) {
-        this.loadStage(this.currentStageIndex + 1, this.currentDifficulty);
+        const nextIdx = this.getNextPlayableStageIndex(this.currentStageIndex);
+        this.loadStage(nextIdx, this.currentDifficulty);
         this.showToast("다음 스테이지로 이동했습니다!");
       }
     });
@@ -709,6 +745,7 @@ class PicoParkApp {
     network.onLobbyUpdate = (players) => {
       this.textPlayerCount.textContent = players.length;
       this.renderLobbyPlayers(players);
+      this.populate50StagesDropdown(players.length);
     };
 
     network.onGameStart = (data) => {
@@ -991,7 +1028,8 @@ class PicoParkApp {
       if (this.gimmickManager.stageCleared) {
         this.clearTimer++;
         if (this.clearTimer > 90) {
-          this.loadStage(this.currentStageIndex + 1, this.currentDifficulty);
+          const nextIdx = this.getNextPlayableStageIndex(this.currentStageIndex);
+          this.loadStage(nextIdx, this.currentDifficulty);
         }
       }
 
